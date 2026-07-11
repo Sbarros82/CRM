@@ -92,18 +92,17 @@ function SignupPageInner() {
   if (success) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <Card className="w-full max-w-md border-border bg-card">
+        <Card className="w-full max-w-md border-slate-100 bg-white shadow-2xl rounded-2xl">
           <CardHeader className="items-center text-center">
-            <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-              <CheckCircle className="h-6 w-6 text-primary" />
+            <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-green-500/10">
+              <CheckCircle className="h-6 w-6 text-green-600" />
             </div>
-            <CardTitle className="text-xl text-foreground">
-              Check your email
+            <CardTitle className="text-xl text-slate-900 font-bold">
+              Verifique seu e-mail
             </CardTitle>
-            <CardDescription className="text-muted-foreground">
-              We&apos;ve sent a confirmation link to{" "}
-              <span className="text-foreground">{email}</span>. Please check your
-              inbox and click the link to verify your account.
+            <CardDescription className="text-slate-500">
+              Enviamos um link de confirmação para{" "}
+              <span className="text-slate-900 font-semibold">{email}</span>. Por favor, verifique sua caixa de entrada e clique no link para validar sua conta.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -116,9 +115,9 @@ function SignupPageInner() {
             >
               <Button
                 variant="outline"
-                className="w-full border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="w-full border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
               >
-                Back to sign in
+                Voltar para o login
               </Button>
             </Link>
           </CardContent>
@@ -129,23 +128,23 @@ function SignupPageInner() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-md border-border bg-card">
+      <Card className="w-full max-w-md border-slate-100 bg-white shadow-2xl rounded-2xl">
         <CardHeader className="items-center text-center">
           <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl">
             {inviteToken ? (
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                <UsersRound className="h-6 w-6 text-primary" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10">
+                <UsersRound className="h-6 w-6 text-blue-600" />
               </div>
             ) : (
               <img src="/logo.png" alt="Snap Logo" className="h-12 w-12 object-contain rounded-xl" />
             )}
           </div>
-          <CardTitle className="text-xl text-foreground">
-            {inviteToken ? "Create account & join" : "Create account"}
+          <CardTitle className="text-xl text-slate-900 font-bold">
+            {inviteToken ? "Criar conta e entrar" : "Criar conta"}
           </CardTitle>
-          <CardDescription className="text-muted-foreground">
+          <CardDescription className="text-slate-500">
             {inviteToken
-              ? "Verify your email, then accept the invitation to join your team."
+              ? "Confirme seu e-mail para aceitar o convite da equipe."
               : "Comece a usar o Snap"}
           </CardDescription>
         </CardHeader>
@@ -158,8 +157,8 @@ function SignupPageInner() {
             )}
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="fullName" className="text-muted-foreground">
-                Full name
+              <Label htmlFor="fullName" className="text-slate-700 font-medium">
+                Nome completo
               </Label>
               <Input
                 id="fullName"
@@ -168,75 +167,75 @@ function SignupPageInner() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required
-                className="border-border bg-muted text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-primary/20"
+                className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-blue-600/20"
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email" className="text-muted-foreground">
-                Email
+              <Label htmlFor="email" className="text-slate-700 font-medium">
+                E-mail
               </Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder="seu-email@exemplo.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="border-border bg-muted text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-primary/20"
+                className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-blue-600/20"
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="password" className="text-muted-foreground">
-                Password
+              <Label htmlFor="password" className="text-slate-700 font-medium">
+                Senha
               </Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="At least 6 characters"
+                placeholder="Mínimo de 6 caracteres"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="border-border bg-muted text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-primary/20"
+                className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-blue-600/20"
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="confirmPassword" className="text-muted-foreground">
-                Confirm password
+              <Label htmlFor="confirmPassword" className="text-slate-700 font-medium">
+                Confirmar senha
               </Label>
               <Input
                 id="confirmPassword"
                 type="password"
-                placeholder="Repeat your password"
+                placeholder="Repita sua senha"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                className="border-border bg-muted text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-primary/20"
+                className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-blue-600/20"
               />
             </div>
 
             <Button
               type="submit"
               disabled={loading}
-              className="mt-2 h-10 w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              className="mt-2 h-10 w-full bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 font-semibold shadow-md shadow-blue-600/10 transition-colors"
             >
-              {loading ? "Creating account..." : "Create account"}
+              {loading ? "Criando conta..." : "Criar conta"}
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            Already have an account?{" "}
+          <p className="mt-6 text-center text-sm text-slate-500">
+            Já tem uma conta?{" "}
             <Link
               href={
                 inviteToken
                   ? `/login?invite=${encodeURIComponent(inviteToken)}`
                   : "/login"
               }
-              className="text-primary hover:text-primary/80"
+              className="text-blue-600 hover:text-blue-700 font-medium"
             >
-              Sign in
+              Entrar
             </Link>
           </p>
         </CardContent>
