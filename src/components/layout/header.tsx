@@ -26,6 +26,7 @@ const pageTitles: Record<string, string> = {
   "/broadcasts": "Broadcasts",
   "/automations": "Automations",
   "/settings": "Settings",
+  "/chat": "Chat Interno",
 };
 
 function getPageTitle(pathname: string): string {
