@@ -276,6 +276,9 @@ export function useChatMessages(channelId: string | null): UseChatMessagesResult
   // Remove mensagem própria.
   const deleteMessage = useCallback(
     async (messageId: string) => {
+      // Optimistic delete: remove localmente primeiro para resposta instantânea.
+      setMessages((prev) => prev.filter((m) => m.id !== messageId));
+
       const supabase = createClient();
       const { error } = await supabase
         .from("chat_messages")
@@ -284,6 +287,7 @@ export function useChatMessages(channelId: string | null): UseChatMessagesResult
 
       if (error) {
         console.error("[useChatMessages] deleteMessage error:", error.message);
+        // Em caso de erro, o re-fetch do Realtime ou reload trará de volta se falhou.
       }
     },
     []
