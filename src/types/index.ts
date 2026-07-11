@@ -542,3 +542,49 @@ export interface AutomationLog {
   created_at: string;
   contact?: Contact;
 }
+
+// ============================================================
+// Chat interno (028_internal_chat.sql)
+// ============================================================
+
+export interface ChatChannel {
+  id: string;
+  account_id: string;
+  /** null em DMs */
+  name: string | null;
+  description?: string;
+  is_dm: boolean;
+  created_by?: string;
+  created_at: string;
+  /** Derivado: mensagens não-lidas pelo caller neste canal. */
+  unread_count?: number;
+  /** Última mensagem para preview na sidebar. */
+  last_message_text?: string;
+  last_message_at?: string;
+}
+
+export interface ChatChannelMember {
+  channel_id: string;
+  user_id: string;
+  last_read_at?: string | null;
+  joined_at: string;
+  /** Perfil do membro (join via RLS). */
+  full_name?: string;
+  avatar_url?: string | null;
+}
+
+export interface ChatMessage {
+  id: string;
+  channel_id: string;
+  sender_id: string;
+  content_text: string;
+  reply_to_id?: string | null;
+  edited_at?: string | null;
+  created_at: string;
+  /** Dados do sender (join no fetch). */
+  sender_full_name?: string;
+  sender_avatar_url?: string | null;
+  /** Dados da mensagem citada (join no fetch). */
+  reply_to_text?: string | null;
+  reply_to_sender_name?: string | null;
+}

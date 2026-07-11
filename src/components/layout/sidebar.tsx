@@ -2,16 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useTotalUnread } from "@/hooks/use-total-unread";
+import { useTotalChatUnread } from "@/hooks/use-total-chat-unread";
+import { createClient } from "@/lib/supabase/client";
 import {
+  CalendarDays,
   Crown,
   GitBranch,
   LayoutDashboard,
   LogOut,
   MessageSquare,
+  MessagesSquare,
   Radio,
   Settings,
   Shield,
@@ -86,11 +90,18 @@ interface NavItem {
   beta?: boolean;
 }
 
-const navItems: NavItem[] = [
+// Itens sempre visíveis (independentes do WhatsApp).
+const coreNavItems: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/inbox", label: "Inbox", icon: MessageSquare },
+  { href: "/chat", label: "Chat Interno", icon: MessagesSquare },
   { href: "/contacts", label: "Contacts", icon: Users },
   { href: "/pipelines", label: "Pipelines", icon: GitBranch },
+  { href: "/appointments", label: "Appointments", icon: CalendarDays },
+];
+
+// Itens que dependem do WhatsApp configurado.
+const whatsappNavItems: NavItem[] = [
+  { href: "/inbox", label: "Inbox", icon: MessageSquare },
   { href: "/broadcasts", label: "Broadcasts", icon: Radio },
   { href: "/automations", label: "Automations", icon: Zap },
   { href: "/flows", label: "Flows", icon: Workflow, beta: true },
@@ -110,6 +121,28 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { profile, profileLoading, account, accountRole, signOut } = useAuth();
   const totalUnread = useTotalUnread();
+  const totalChatUnread = useTotalChatUnread();
+
+  // Verifica se o WhatsApp está configurado e conectado.
+  // Lê whatsapp_config uma vez ao montar — sem Realtime (muda raramente).
+  const [whatsappConnected, setWhatsappConnected] = useState<boolean | null>(null);
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from("whatsapp_config")
+      .select("status")
+      .eq("status", "connected")
+      .limit(1)
+      .then(({ data }) => {
+        setWhatsappConnected(!!(data && data.length > 0));
+      });
+  }, []);
+
+  // Itens de navegação: core + WhatsApp se conectado.
+  const navItems: NavItem[] = [
+    ...coreNavItems,
+    ...(whatsappConnected ? whatsappNavItems : []),
+  ];
   // Only surface the account-name strip when it actually carries
   // information. A solo user's personal account is named after them
   // (the 017 signup trigger seeds it from `full_name`), so showing it
@@ -204,8 +237,11 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                 pathname === item.href ||
                 (item.href !== "/dashboard" && pathname.startsWith(item.href));
 
-              const showUnreadDot =
+              // Badge de não-lidas: WhatsApp inbox ou Chat interno.
+              const showInboxDot =
                 item.href === "/inbox" && totalUnread > 0 && !isActive;
+              const showChatBadge =
+                item.href === "/chat" && totalChatUnread > 0 && !isActive;
 
               return (
                 <li key={item.href}>
@@ -229,13 +265,21 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                         Beta
                       </span>
                     )}
-                    {showUnreadDot && (
+                    {showInboxDot && (
                       <span
                         aria-label={`${totalUnread} unread conversation${totalUnread === 1 ? "" : "s"}`}
                         className="relative flex h-2 w-2"
                       >
                         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
                         <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+                      </span>
+                    )}
+                    {showChatBadge && (
+                      <span
+                        aria-label={`${totalChatUnread} mensagem${totalChatUnread === 1 ? "" : "s"} não lida${totalChatUnread === 1 ? "" : "s"}`}
+                        className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground"
+                      >
+                        {totalChatUnread > 99 ? "99+" : totalChatUnread}
                       </span>
                     )}
                   </Link>
