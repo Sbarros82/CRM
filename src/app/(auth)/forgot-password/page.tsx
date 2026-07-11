@@ -44,27 +44,26 @@ export default function ForgotPasswordPage() {
   if (success) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <Card className="w-full max-w-md border-border bg-card">
+        <Card className="w-full max-w-md border-slate-100 bg-white shadow-2xl rounded-2xl">
           <CardHeader className="items-center text-center">
-            <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-              <CheckCircle className="h-6 w-6 text-primary" />
+            <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-green-500/10">
+              <CheckCircle className="h-6 w-6 text-green-600" />
             </div>
-            <CardTitle className="text-xl text-foreground">
-              Check your email
+            <CardTitle className="text-xl text-slate-900 font-bold">
+              Verifique seu e-mail
             </CardTitle>
-            <CardDescription className="text-muted-foreground">
-              We&apos;ve sent a password reset link to{" "}
-              <span className="text-foreground">{email}</span>. Please check your
-              inbox.
+            <CardDescription className="text-slate-500">
+              Enviamos um link de recuperação de senha para{" "}
+              <span className="text-slate-900 font-semibold">{email}</span>. Por favor, verifique sua caixa de entrada.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Link href="/login">
               <Button
                 variant="outline"
-                className="w-full border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="w-full border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
               >
-                Back to sign in
+                Voltar para o login
               </Button>
             </Link>
           </CardContent>
@@ -75,14 +74,14 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-md border-border bg-card">
+      <Card className="w-full max-w-md border-slate-100 bg-white shadow-2xl rounded-2xl">
         <CardHeader className="items-center text-center">
-          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-            <MessageSquare className="h-6 w-6 text-primary" />
+          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl">
+            <img src="/logo.png" alt="Snap Logo" className="h-12 w-12 object-contain rounded-xl" />
           </div>
-          <CardTitle className="text-xl text-foreground">Reset password</CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Enter your email and we&apos;ll send you a reset link
+          <CardTitle className="text-xl text-slate-900 font-bold">Recuperar senha</CardTitle>
+          <CardDescription className="text-slate-500">
+            Digite seu e-mail e enviaremos um link de recuperação
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -94,35 +93,35 @@ export default function ForgotPasswordPage() {
             )}
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email" className="text-muted-foreground">
-                Email
+              <Label htmlFor="email" className="text-slate-700 font-medium">
+                E-mail
               </Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder="seu-email@exemplo.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="border-border bg-muted text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-primary/20"
+                className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-blue-600/20"
               />
             </div>
 
             <Button
               type="submit"
               disabled={loading}
-              className="mt-2 h-10 w-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              className="mt-2 h-10 w-full bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 font-semibold shadow-md shadow-blue-600/10 transition-colors"
             >
-              {loading ? "Sending..." : "Send reset link"}
+              {loading ? "Enviando..." : "Enviar link de recuperação"}
             </Button>
           </form>
 
           <Link
             href="/login"
-            className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+            className="mt-6 flex items-center justify-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Back to sign in
+            <ArrowLeft className="h-4 w-4 text-blue-600" />
+            Voltar para o login
           </Link>
         </CardContent>
       </Card>
