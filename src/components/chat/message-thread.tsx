@@ -64,14 +64,15 @@ export function MessageThread({
   }, [messages]);
 
   // Marca como lido quando o canal abre.
+  const channelId = channel?.id;
   useEffect(() => {
-    if (!channel) return;
-    onMarkRead(channel.id);
+    if (!channelId) return;
+    onMarkRead(channelId);
     // Marca no servidor via RPC.
     import("@/lib/supabase/client").then(({ createClient }) => {
-      createClient().rpc("mark_channel_read", { p_channel_id: channel.id });
+      createClient().rpc("mark_channel_read", { p_channel_id: channelId });
     });
-  }, [channel, onMarkRead]);
+  }, [channelId, onMarkRead]);
 
   const handleScroll = useCallback(() => {
     const el = scrollRef.current;

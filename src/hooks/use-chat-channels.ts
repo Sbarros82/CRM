@@ -163,11 +163,13 @@ export function useChatChannels() {
   const markAsRead = useCallback((channelId: string) => {
     const now = new Date().toISOString();
     lastReadRef.current.set(channelId, now);
-    setChannels((prev) =>
-      prev.map((ch) =>
+    setChannels((prev) => {
+      const target = prev.find((ch) => ch.id === channelId);
+      if (!target || target.unread_count === 0) return prev;
+      return prev.map((ch) =>
         ch.id === channelId ? { ...ch, unread_count: 0 } : ch
-      )
-    );
+      );
+    });
   }, []);
 
   return { channels, loading, refetch: fetchChannels, markAsRead };
