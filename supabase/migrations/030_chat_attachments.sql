@@ -22,6 +22,9 @@ ALTER TABLE chat_messages
   DROP CONSTRAINT IF EXISTS chat_messages_content_text_check;
 
 ALTER TABLE chat_messages
+  DROP CONSTRAINT IF EXISTS chat_messages_content_check;
+
+ALTER TABLE chat_messages
   ADD CONSTRAINT chat_messages_content_check
     CHECK (
       char_length(trim(coalesce(content_text, ''))) > 0
