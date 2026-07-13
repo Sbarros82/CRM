@@ -554,6 +554,8 @@ export interface ChatChannel {
   name: string | null;
   description?: string;
   is_dm: boolean;
+  /** false = público (qualquer membro entra); true = privado (somente por convite). */
+  is_private: boolean;
   created_by?: string;
   created_at: string;
   /** Derivado: mensagens não-lidas pelo caller neste canal. */

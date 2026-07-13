@@ -2,13 +2,24 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { Hash, MessageCircle, Plus, ChevronDown, ChevronRight, Search } from "lucide-react";
+import {
+  Hash,
+  MessageCircle,
+  Plus,
+  ChevronDown,
+  ChevronRight,
+  Search,
+  Globe,
+  Lock,
+  LogIn,
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { ChatChannel, ChatChannelMember } from "@/types";
 import type { PresenceStatus } from "@/lib/presence";
 
 interface ChannelSidebarProps {
   channels: ChatChannel[];
+  availableChannels: ChatChannel[];
   activeChannelId: string | null;
   members: ChatChannelMember[];
   getPresence: (userId: string) => PresenceStatus;
@@ -16,6 +27,7 @@ interface ChannelSidebarProps {
   onSelectChannel: (channelId: string) => void;
   onCreateChannel: () => void;
   onStartDm: () => void;
+  onJoinChannel: (channelId: string) => Promise<void>;
 }
 
 function PresenceDot({ status }: { status: PresenceStatus }) {
@@ -42,6 +54,7 @@ function UnreadBadge({ count }: { count: number }) {
 
 export function ChannelSidebar({
   channels,
+  availableChannels,
   activeChannelId,
   members,
   getPresence,
@@ -49,10 +62,13 @@ export function ChannelSidebar({
   onSelectChannel,
   onCreateChannel,
   onStartDm,
+  onJoinChannel,
 }: ChannelSidebarProps) {
   const [channelsSectionOpen, setChannelsSectionOpen] = useState(true);
   const [dmsSectionOpen, setDmsSectionOpen] = useState(true);
+  const [availableSectionOpen, setAvailableSectionOpen] = useState(true);
   const [search, setSearch] = useState("");
+  const [joiningId, setJoiningId] = useState<string | null>(null);
 
   const publicChannels = channels.filter((c) => !c.is_dm);
   const dms = channels.filter((c) => c.is_dm);
@@ -60,22 +76,22 @@ export function ChannelSidebar({
   // Outros membros (para DMs) — excluindo o próprio caller.
   const otherMembers = members.filter((m) => m.user_id !== currentUserId);
 
-  // Para DMs, encontra o outro membro.
-  const getDmPartner = (channelId: string) => {
-    // O canal DM tem os dois membros — o outro é o que não é o caller.
-    const dm = dms.find((c) => c.id === channelId);
-    if (!dm) return null;
-    // Procura nos membros o que não é o caller (via members prop).
-    return otherMembers.find((m) => {
-      // Se o canal estiver na lista de channels dos membros
-      // (simplificação: mapeamos os channels DM pelos nomes dos membros).
-      return true; // será populado corretamente via membros do canal
-    }) ?? null;
-  };
-
   const filtered = search
     ? publicChannels.filter((c) => c.name?.toLowerCase().includes(search.toLowerCase()))
     : publicChannels;
+
+  const filteredAvailable = search
+    ? availableChannels.filter((c) => c.name?.toLowerCase().includes(search.toLowerCase()))
+    : availableChannels;
+
+  const handleJoin = async (channelId: string) => {
+    setJoiningId(channelId);
+    try {
+      await onJoinChannel(channelId);
+    } finally {
+      setJoiningId(null);
+    }
+  };
 
   return (
     <div className="flex h-full flex-col overflow-hidden border-r border-border bg-card">
@@ -92,7 +108,7 @@ export function ChannelSidebar({
       </div>
 
       <div className="flex-1 overflow-y-auto py-2">
-        {/* ── Seção Canais ── */}
+        {/* ── Seção Meus Canais ── */}
         <section className="mb-2">
           <button
             type="button"
@@ -140,6 +156,10 @@ export function ChannelSidebar({
                   >
                     <Hash className="h-4 w-4 shrink-0 opacity-70" />
                     <span className="min-w-0 flex-1 truncate text-left">{ch.name}</span>
+                    {/* Ícone de cadeado para privados */}
+                    {ch.is_private && (
+                      <Lock className="h-3 w-3 shrink-0 text-muted-foreground/60" title="Canal privado" />
+                    )}
                     <UnreadBadge count={ch.unread_count ?? 0} />
                   </button>
                 </li>
@@ -147,6 +167,59 @@ export function ChannelSidebar({
             </ul>
           )}
         </section>
+
+        {/* ── Seção Canais Disponíveis ── */}
+        {filteredAvailable.length > 0 && (
+          <section className="mb-2">
+            <button
+              type="button"
+              onClick={() => setAvailableSectionOpen((v) => !v)}
+              className="flex w-full items-center gap-1 px-4 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground"
+            >
+              {availableSectionOpen ? (
+                <ChevronDown className="h-3 w-3" />
+              ) : (
+                <ChevronRight className="h-3 w-3" />
+              )}
+              <Globe className="h-3 w-3" />
+              Disponíveis
+            </button>
+
+            {availableSectionOpen && (
+              <ul className="mt-1 space-y-0.5 px-2">
+                {filteredAvailable.map((ch) => (
+                  <li key={ch.id}>
+                    <div className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent/50">
+                      <Hash className="h-4 w-4 shrink-0 opacity-50" />
+                      <span className="min-w-0 flex-1 truncate text-left opacity-70">{ch.name}</span>
+                      {ch.description && (
+                        <span
+                          className="hidden max-w-[80px] truncate text-[10px] text-muted-foreground/60 lg:block"
+                          title={ch.description}
+                        >
+                          {ch.description}
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleJoin(ch.id)}
+                        disabled={joiningId === ch.id}
+                        title="Entrar no canal"
+                        className={cn(
+                          "ml-auto flex shrink-0 items-center gap-1 rounded-md border border-primary/40 bg-primary/5 px-2 py-0.5 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/15",
+                          joiningId === ch.id && "cursor-not-allowed opacity-50"
+                        )}
+                      >
+                        <LogIn className="h-3 w-3" />
+                        {joiningId === ch.id ? "…" : "Entrar"}
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
 
         {/* ── Seção DMs ── */}
         <section>
@@ -214,9 +287,7 @@ export function ChannelSidebar({
                           <AvatarImage src={avatarUrl ?? undefined} />
                           <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
                         </Avatar>
-                        <PresenceDot
-                          status={presence}
-                        />
+                        <PresenceDot status={presence} />
                       </div>
                       <span className="min-w-0 flex-1 truncate text-left">{name}</span>
                       <UnreadBadge count={dm.unread_count ?? 0} />

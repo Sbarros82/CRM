@@ -9,6 +9,10 @@ import type { ChatChannel, ChatMessage } from "@/types";
  * Carrega canais e DMs do account do caller, calcula unread_count
  * por canal e mantém tudo sincronizado via Supabase Realtime.
  *
+ * Também expõe:
+ *   - availableChannels: canais públicos existentes nos quais o caller ainda NÃO é membro.
+ *   - joinChannel(channelId): entra num canal público via RPC join_chat_channel.
+ *
  * unread_count = número de mensagens criadas depois de last_read_at
  * do caller naquele canal. Atualiza em tempo real ao receber
  * novos chat_messages ou ao marcar um canal como lido.
@@ -16,6 +20,7 @@ import type { ChatChannel, ChatMessage } from "@/types";
 export function useChatChannels() {
   const { user, accountId } = useAuth();
   const [channels, setChannels] = useState<ChatChannel[]>([]);
+  const [availableChannels, setAvailableChannels] = useState<ChatChannel[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Espelho local de {channel_id: last_read_at} para calcular
@@ -32,40 +37,34 @@ export function useChatChannels() {
       .select("channel_id, last_read_at")
       .eq("user_id", user.id);
 
-    if (!memberRows || memberRows.length === 0) {
-      setChannels([]);
-      setLoading(false);
-      return;
-    }
-
     // Guarda last_read_at por canal.
     const newLastRead = new Map<string, string | null>();
-    for (const r of memberRows) {
+    for (const r of memberRows ?? []) {
       newLastRead.set(r.channel_id as string, r.last_read_at as string | null);
     }
     lastReadRef.current = newLastRead;
 
-    const channelIds = memberRows.map((r) => r.channel_id as string);
+    const channelIds = (memberRows ?? []).map((r) => r.channel_id as string);
 
-    // 2. Dados dos canais.
-    const { data: channelRows } = await supabase
-      .from("chat_channels")
-      .select("*")
-      .in("id", channelIds)
-      .eq("account_id", accountId)
-      .order("created_at", { ascending: true });
+    // 2. Dados dos canais onde é membro.
+    const memberChannelRows = channelIds.length > 0
+      ? (await supabase
+          .from("chat_channels")
+          .select("*")
+          .in("id", channelIds)
+          .eq("account_id", accountId)
+          .order("created_at", { ascending: true })
+        ).data ?? []
+      : [];
 
-    if (!channelRows) {
-      setLoading(false);
-      return;
-    }
-
-    // 3. Última mensagem de cada canal (para preview).
-    const { data: lastMsgRows } = await supabase
-      .from("chat_messages")
-      .select("channel_id, content_text, created_at, sender_id")
-      .in("channel_id", channelIds)
-      .order("created_at", { ascending: false });
+    // 3. Última mensagem de cada canal (para preview e unread).
+    const { data: lastMsgRows } = channelIds.length > 0
+      ? await supabase
+          .from("chat_messages")
+          .select("channel_id, content_text, created_at, sender_id")
+          .in("channel_id", channelIds)
+          .order("created_at", { ascending: false })
+      : { data: [] };
 
     // Agrupa última mensagem por canal.
     const lastMsgMap = new Map<string, { text: string; at: string }>();
@@ -92,7 +91,7 @@ export function useChatChannels() {
       unreadMap.set(cid, msgs.length);
     }
 
-    const enriched: ChatChannel[] = (channelRows as ChatChannel[]).map((ch) => ({
+    const enriched: ChatChannel[] = (memberChannelRows as ChatChannel[]).map((ch) => ({
       ...ch,
       unread_count: unreadMap.get(ch.id) ?? 0,
       last_message_text: lastMsgMap.get(ch.id)?.text,
@@ -100,6 +99,22 @@ export function useChatChannels() {
     }));
 
     setChannels(enriched);
+
+    // 5. Canais públicos disponíveis (não-membro, não-privados, não-DMs).
+    const { data: allPublicRows } = await supabase
+      .from("chat_channels")
+      .select("*")
+      .eq("account_id", accountId)
+      .eq("is_dm", false)
+      .eq("is_private", false)
+      .order("created_at", { ascending: true });
+
+    const memberSet = new Set(channelIds);
+    const available = (allPublicRows ?? []).filter(
+      (ch) => !memberSet.has(ch.id)
+    ) as ChatChannel[];
+
+    setAvailableChannels(available);
     setLoading(false);
   }, [user, accountId]);
 
@@ -149,6 +164,14 @@ export function useChatChannels() {
           fetchChannels();
         }
       )
+      // Subscreve criação de canais para atualizar a lista de disponíveis.
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chat_channels" },
+        () => {
+          fetchChannels();
+        }
+      )
       .subscribe();
 
     return () => {
@@ -172,5 +195,26 @@ export function useChatChannels() {
     });
   }, []);
 
-  return { channels, loading, refetch: fetchChannels, markAsRead };
+  /**
+   * Entra num canal público via RPC join_chat_channel.
+   * Após sucesso, re-fetch para mover o canal de "disponível" para "meus canais".
+   */
+  const joinChannel = useCallback(
+    async (channelId: string): Promise<boolean> => {
+      if (!user) return false;
+      const supabase = createClient();
+      const { error } = await supabase.rpc("join_chat_channel", {
+        p_channel_id: channelId,
+      });
+      if (error) {
+        console.error("[useChatChannels] joinChannel error:", error.message);
+        return false;
+      }
+      await fetchChannels();
+      return true;
+    },
+    [user, fetchChannels]
+  );
+
+  return { channels, availableChannels, loading, refetch: fetchChannels, markAsRead, joinChannel };
 }

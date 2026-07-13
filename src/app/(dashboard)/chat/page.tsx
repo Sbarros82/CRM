@@ -14,7 +14,7 @@ import type { ChatChannelMember } from "@/types";
 
 export default function ChatPage() {
   const { user, accountId } = useAuth();
-  const { channels, loading: channelsLoading, markAsRead, refetch } = useChatChannels();
+  const { channels, availableChannels, loading: channelsLoading, markAsRead, refetch, joinChannel } = useChatChannels();
   const { getPresence, getRow, now } = usePresence();
 
   const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
@@ -124,6 +124,7 @@ export default function ChatPage() {
       <div className="hidden w-60 shrink-0 lg:block">
         <ChannelSidebar
           channels={channels}
+          availableChannels={availableChannels}
           activeChannelId={activeChannelId}
           members={[...channelMembers, ...allDmMembers]}
           getPresence={getPresence}
@@ -134,6 +135,13 @@ export default function ChatPage() {
           }}
           onCreateChannel={() => setShowCreateChannel(true)}
           onStartDm={() => setShowNewDm(true)}
+          onJoinChannel={async (id) => {
+            const ok = await joinChannel(id);
+            if (ok) {
+              setActiveChannelId(id);
+              markAsRead(id);
+            }
+          }}
         />
       </div>
 

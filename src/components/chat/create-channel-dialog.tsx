@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { Hash, Loader2 } from "lucide-react";
+import { Hash, Loader2, Globe, Lock } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 
@@ -19,6 +19,7 @@ export function CreateChannelDialog({
 }: CreateChannelDialogProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [isPrivate, setIsPrivate] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Slugifica o nome: lowercase, sem espaços, sem acentos, apenas a-z0-9-.
@@ -44,13 +45,15 @@ export function CreateChannelDialog({
       const { data, error } = await supabase.rpc("create_chat_channel", {
         p_name: slug,
         p_description: description.trim() || null,
+        p_is_private: isPrivate,
       });
 
       if (error) throw new Error(error.message);
 
-      toast.success(`Canal #${slug} criado`);
+      toast.success(`Canal #${slug} criado como ${isPrivate ? "privado 🔒" : "público 🌐"}`);
       setName("");
       setDescription("");
+      setIsPrivate(false);
       onCreated(data as string);
       onClose();
     } catch (err) {
@@ -58,7 +61,7 @@ export function CreateChannelDialog({
     } finally {
       setLoading(false);
     }
-  }, [name, description, onCreated, onClose]);
+  }, [name, description, isPrivate, onCreated, onClose]);
 
   if (!open) return null;
 
@@ -101,7 +104,7 @@ export function CreateChannelDialog({
         </label>
 
         {/* Descrição */}
-        <label className="mb-6 block">
+        <label className="mb-5 block">
           <span className="mb-1.5 block text-sm font-medium text-foreground">
             Descrição <span className="text-muted-foreground">(opcional)</span>
           </span>
@@ -114,6 +117,56 @@ export function CreateChannelDialog({
             className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/20"
           />
         </label>
+
+        {/* Visibilidade — toggle Público / Privado */}
+        <div className="mb-6">
+          <span className="mb-2 block text-sm font-medium text-foreground">Visibilidade</span>
+          <div className="grid grid-cols-2 gap-2">
+            {/* Público */}
+            <button
+              type="button"
+              onClick={() => setIsPrivate(false)}
+              className={cn(
+                "flex flex-col items-start gap-1.5 rounded-lg border p-3 text-left transition-all",
+                !isPrivate
+                  ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                  : "border-border bg-background hover:border-muted-foreground/40 hover:bg-muted/40"
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <Globe className={cn("h-4 w-4", !isPrivate ? "text-primary" : "text-muted-foreground")} />
+                <span className={cn("text-sm font-medium", !isPrivate ? "text-primary" : "text-foreground")}>
+                  Público
+                </span>
+              </div>
+              <p className="text-[11px] leading-tight text-muted-foreground">
+                Qualquer membro da equipa pode ver e entrar
+              </p>
+            </button>
+
+            {/* Privado */}
+            <button
+              type="button"
+              onClick={() => setIsPrivate(true)}
+              className={cn(
+                "flex flex-col items-start gap-1.5 rounded-lg border p-3 text-left transition-all",
+                isPrivate
+                  ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                  : "border-border bg-background hover:border-muted-foreground/40 hover:bg-muted/40"
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <Lock className={cn("h-4 w-4", isPrivate ? "text-primary" : "text-muted-foreground")} />
+                <span className={cn("text-sm font-medium", isPrivate ? "text-primary" : "text-foreground")}>
+                  Privado
+                </span>
+              </div>
+              <p className="text-[11px] leading-tight text-muted-foreground">
+                Somente membros convidados têm acesso
+              </p>
+            </button>
+          </div>
+        </div>
 
         {/* Ações */}
         <div className="flex justify-end gap-2">
