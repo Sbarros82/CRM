@@ -93,6 +93,7 @@ interface NavItem {
 // Itens sempre visíveis (independentes do WhatsApp).
 const coreNavItems: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/inbox", label: "Chat ao Vivo", icon: MessageSquare },
   { href: "/chat", label: "Chat Interno", icon: MessagesSquare },
   { href: "/contacts", label: "Contacts", icon: Users },
   { href: "/pipelines", label: "Pipelines", icon: GitBranch },
@@ -101,7 +102,6 @@ const coreNavItems: NavItem[] = [
 
 // Itens que dependem do WhatsApp configurado.
 const whatsappNavItems: NavItem[] = [
-  { href: "/inbox", label: "Inbox", icon: MessageSquare },
   { href: "/broadcasts", label: "Broadcasts", icon: Radio },
   { href: "/automations", label: "Automations", icon: Zap },
   { href: "/flows", label: "Flows", icon: Workflow, beta: true },
