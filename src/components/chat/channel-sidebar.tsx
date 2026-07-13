@@ -158,7 +158,9 @@ export function ChannelSidebar({
                     <span className="min-w-0 flex-1 truncate text-left">{ch.name}</span>
                     {/* Ícone de cadeado para privados */}
                     {ch.is_private && (
-                      <Lock className="h-3 w-3 shrink-0 text-muted-foreground/60" title="Canal privado" />
+                      <span title="Canal privado">
+                        <Lock className="h-3 w-3 shrink-0 text-muted-foreground/60" aria-label="Canal privado" />
+                      </span>
                     )}
                     <UnreadBadge count={ch.unread_count ?? 0} />
                   </button>
