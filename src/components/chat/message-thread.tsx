@@ -45,7 +45,7 @@ export function MessageThread({
   dmPartnerName,
   onMarkRead,
 }: MessageThreadProps) {
-  const { messages, loading, hasMore, loadMore, sendMessage, editMessage, deleteMessage } =
+  const { messages, loading, hasMore, loadMore, sendMessage, uploadAttachment, editMessage, deleteMessage } =
     useChatMessages(channel?.id ?? null);
 
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
@@ -258,6 +258,7 @@ export function MessageThread({
         replyTo={replyTo}
         onClearReply={() => setReplyTo(null)}
         onSend={sendMessage}
+        onUpload={(file) => uploadAttachment(file, channel.id)}
       />
     </div>
   );

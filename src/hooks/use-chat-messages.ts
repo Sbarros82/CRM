@@ -7,12 +7,19 @@ import type { ChatMessage } from "@/types";
 
 const PAGE_SIZE = 50;
 
+export interface AttachmentPayload {
+  file: File;
+  /** URL pública/assinada retornada após o upload. */
+  url: string;
+}
+
 interface UseChatMessagesResult {
   messages: ChatMessage[];
   loading: boolean;
   hasMore: boolean;
   loadMore: () => Promise<void>;
-  sendMessage: (text: string, replyToId?: string) => Promise<void>;
+  sendMessage: (text: string, replyToId?: string, attachment?: AttachmentPayload) => Promise<void>;
+  uploadAttachment: (file: File, channelId: string) => Promise<AttachmentPayload | null>;
   editMessage: (messageId: string, newText: string) => Promise<void>;
   deleteMessage: (messageId: string) => Promise<void>;
 }
@@ -24,6 +31,7 @@ interface UseChatMessagesResult {
  * - Enriquece sender_full_name e reply_to_text via join manual
  *   (Supabase RLS não permite .select() com foreign tables em
  *   políticas cross-table — usamos queries separadas e memoizamos).
+ * - Suporta upload de anexos para o bucket "chat-attachments".
  */
 export function useChatMessages(channelId: string | null): UseChatMessagesResult {
   const { user } = useAuth();
@@ -217,11 +225,44 @@ export function useChatMessages(channelId: string | null): UseChatMessagesResult
     setHasMore(data.length === PAGE_SIZE);
   }, [channelId, hasMore, messages, enrichMessages]);
 
-  // Envia mensagem (optimistic).
+  // Faz upload do arquivo para o Storage e retorna a URL pública.
+  const uploadAttachment = useCallback(
+    async (file: File, chId: string): Promise<AttachmentPayload | null> => {
+      if (!user) return null;
+      const supabase = createClient();
+
+      // Caminho: user_id/channel_id/timestamp_filename
+      const ext = file.name.split(".").pop() ?? "bin";
+      const path = `${user.id}/${chId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+
+      const { error } = await supabase.storage
+        .from("chat-attachments")
+        .upload(path, file, { upsert: false, contentType: file.type });
+
+      if (error) {
+        console.error("[useChatMessages] uploadAttachment error:", error.message);
+        return null;
+      }
+
+      // Gera URL pública assinada válida por 1 ano (bucket é privado).
+      const { data: signed } = await supabase.storage
+        .from("chat-attachments")
+        .createSignedUrl(path, 60 * 60 * 24 * 365);
+
+      if (!signed?.signedUrl) return null;
+
+      return { file, url: signed.signedUrl };
+    },
+    [user]
+  );
+
+  // Envia mensagem com suporte a texto e/ou anexo (optimistic).
   const sendMessage = useCallback(
-    async (text: string, replyToId?: string) => {
+    async (text: string, replyToId?: string, attachment?: AttachmentPayload) => {
       if (!channelId || !user) return;
       const supabase = createClient();
+
+      const trimmedText = text.trim();
 
       // Optimistic: adiciona imediatamente com dados do caller.
       const optimisticId = `optimistic-${Date.now()}`;
@@ -230,7 +271,7 @@ export function useChatMessages(channelId: string | null): UseChatMessagesResult
         id: optimisticId,
         channel_id: channelId,
         sender_id: user.id,
-        content_text: text.trim(),
+        content_text: trimmedText,
         reply_to_id: replyToId ?? null,
         created_at: new Date().toISOString(),
         edited_at: null,
@@ -238,14 +279,22 @@ export function useChatMessages(channelId: string | null): UseChatMessagesResult
         sender_avatar_url: senderProfile?.avatar_url ?? null,
         reply_to_text: null,
         reply_to_sender_name: null,
+        attachment_url: attachment?.url ?? null,
+        attachment_name: attachment?.file.name ?? null,
+        attachment_type: attachment?.file.type ?? null,
+        attachment_size: attachment?.file.size ?? null,
       };
       setMessages((prev) => [...prev, optimistic]);
 
       const { error } = await supabase.from("chat_messages").insert({
         channel_id: channelId,
         sender_id: user.id,
-        content_text: text.trim(),
+        content_text: trimmedText || " ", // espaço mínimo se não houver texto
         reply_to_id: replyToId ?? null,
+        attachment_url: attachment?.url ?? null,
+        attachment_name: attachment?.file.name ?? null,
+        attachment_type: attachment?.file.type ?? null,
+        attachment_size: attachment?.file.size ?? null,
       });
 
       if (error) {
@@ -293,5 +342,5 @@ export function useChatMessages(channelId: string | null): UseChatMessagesResult
     []
   );
 
-  return { messages, loading, hasMore, loadMore, sendMessage, editMessage, deleteMessage };
+  return { messages, loading, hasMore, loadMore, sendMessage, uploadAttachment, editMessage, deleteMessage };
 }

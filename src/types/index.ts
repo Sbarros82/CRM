@@ -587,4 +587,9 @@ export interface ChatMessage {
   /** Dados da mensagem citada (join no fetch). */
   reply_to_text?: string | null;
   reply_to_sender_name?: string | null;
+  /** Anexo opcional (imagem, documento, etc.). */
+  attachment_url?: string | null;
+  attachment_name?: string | null;
+  attachment_type?: string | null;
+  attachment_size?: number | null;
 }

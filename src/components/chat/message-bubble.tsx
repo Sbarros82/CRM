@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { CornerDownLeft, Pencil, Trash2 } from "lucide-react";
+import { CornerDownLeft, Pencil, Trash2, FileText, Download, ImageIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -37,6 +37,85 @@ function DateSeparator({ date }: { date: string }) {
 
 export { DateSeparator };
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function AttachmentRenderer({ message }: { message: ChatMessage }) {
+  const { attachment_url, attachment_name, attachment_type, attachment_size } = message;
+  if (!attachment_url) return null;
+
+  const isImage = attachment_type?.startsWith("image/");
+  const isVideo = attachment_type?.startsWith("video/");
+  const isAudio = attachment_type?.startsWith("audio/");
+
+  if (isImage) {
+    return (
+      <a
+        href={attachment_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-1.5 block"
+        title={attachment_name ?? "Imagem"}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={attachment_url}
+          alt={attachment_name ?? "Imagem"}
+          className="max-h-64 max-w-xs rounded-lg border border-border object-cover transition-opacity hover:opacity-90"
+          loading="lazy"
+        />
+      </a>
+    );
+  }
+
+  if (isVideo) {
+    return (
+      <video
+        src={attachment_url}
+        controls
+        className="mt-1.5 max-h-48 max-w-xs rounded-lg border border-border"
+      />
+    );
+  }
+
+  if (isAudio) {
+    return (
+      <audio
+        src={attachment_url}
+        controls
+        className="mt-1.5 max-w-xs"
+      />
+    );
+  }
+
+  // Documento genérico (PDF, Word, Excel, txt…)
+  return (
+    <a
+      href={attachment_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      download={attachment_name ?? true}
+      className="mt-1.5 flex max-w-xs items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2.5 transition-colors hover:bg-muted/70"
+    >
+      <FileText className="h-8 w-8 shrink-0 text-primary/70" />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-xs font-medium text-foreground">
+          {attachment_name ?? "Documento"}
+        </p>
+        {attachment_size != null && (
+          <p className="text-[10px] text-muted-foreground">
+            {formatFileSize(attachment_size)}
+          </p>
+        )}
+      </div>
+      <Download className="h-4 w-4 shrink-0 text-muted-foreground" />
+    </a>
+  );
+}
+
 export function MessageBubble({
   message,
   isOwn,
@@ -54,6 +133,7 @@ export function MessageBubble({
     .toUpperCase();
 
   const time = format(new Date(message.created_at), "HH:mm");
+  const hasText = message.content_text?.trim().length > 0;
 
   return (
     <div
@@ -104,9 +184,14 @@ export function MessageBubble({
         )}
 
         {/* Texto */}
-        <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground">
-          {message.content_text}
-        </p>
+        {hasText && (
+          <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground">
+            {message.content_text}
+          </p>
+        )}
+
+        {/* Anexo */}
+        <AttachmentRenderer message={message} />
 
         {/* Badge editado */}
         {message.edited_at && (
