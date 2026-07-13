@@ -62,7 +62,7 @@ export function AppointmentForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.scheduled_at) {
-      setError("Date and time are required.");
+      setError("Data e hora são obrigatórias.");
       return;
     }
     setSaving(true);
@@ -87,13 +87,13 @@ export function AppointmentForm({
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error ?? "Failed to save appointment");
+        throw new Error(data.error ?? "Falha ao salvar agendamento");
       }
 
       onSaved();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(err instanceof Error ? err.message : "Erro desconhecido");
     } finally {
       setSaving(false);
     }
@@ -105,7 +105,7 @@ export function AppointmentForm({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <h2 className="text-base font-semibold text-foreground">
-            {isEdit ? "Edit Appointment" : "New Appointment"}
+            {isEdit ? "Editar Agendamento" : "Novo Agendamento"}
           </h2>
           <button
             onClick={onClose}
@@ -119,7 +119,7 @@ export function AppointmentForm({
           {/* Contact search */}
           <div className="relative">
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-              Contact
+              Contato
             </label>
             <input
               type="text"
@@ -129,7 +129,7 @@ export function AppointmentForm({
                 setShowContactDropdown(true);
                 if (!e.target.value) setForm((f) => ({ ...f, contact_id: undefined }));
               }}
-              placeholder="Search by name or phone…"
+              placeholder="Buscar por nome ou telefone…"
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
             {showContactDropdown && contacts.length > 0 && (
@@ -156,7 +156,7 @@ export function AppointmentForm({
           {/* Service */}
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-              Service
+              Serviço
             </label>
             <select
               value={form.service_id ?? ""}
@@ -165,7 +165,7 @@ export function AppointmentForm({
               }
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
-              <option value="">Select a service…</option>
+              <option value="">Selecione um serviço…</option>
               {services.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name} · {s.duration_minutes}min
@@ -178,7 +178,7 @@ export function AppointmentForm({
           {/* Date & Time */}
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-              Date & Time *
+              Data e Hora *
             </label>
             <input
               type="datetime-local"
@@ -194,7 +194,7 @@ export function AppointmentForm({
           {/* Notes */}
           <div>
             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
-              Notes
+              Observações
             </label>
             <textarea
               value={form.notes ?? ""}
@@ -202,7 +202,7 @@ export function AppointmentForm({
                 setForm((f) => ({ ...f, notes: e.target.value || undefined }))
               }
               rows={3}
-              placeholder="Internal notes about this appointment…"
+              placeholder="Notas internas sobre este agendamento…"
               className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
             />
           </div>
@@ -220,7 +220,7 @@ export function AppointmentForm({
               onClick={onClose}
               className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted transition-colors"
             >
-              Cancel
+              Cancelar
             </button>
             <button
               type="submit"
@@ -228,7 +228,7 @@ export function AppointmentForm({
               className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
               {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              {isEdit ? "Save changes" : "Create appointment"}
+              {isEdit ? "Salvar alterações" : "Criar agendamento"}
             </button>
           </div>
         </form>
