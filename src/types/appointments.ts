@@ -95,11 +95,11 @@ export interface AppointmentReminder {
 // UI helpers
 // ----------------------------------------------------------------
 export const APPOINTMENT_STATUS_LABELS: Record<AppointmentStatus, string> = {
-  scheduled: "Scheduled",
-  confirmed: "Confirmed",
-  cancelled: "Cancelled",
-  completed: "Completed",
-  no_show: "No Show",
+  scheduled: "Agendado",
+  confirmed: "Confirmado",
+  cancelled: "Cancelado",
+  completed: "Concluído",
+  no_show: "Não Compareceu",
 };
 
 export const APPOINTMENT_STATUS_COLORS: Record<AppointmentStatus, string> = {

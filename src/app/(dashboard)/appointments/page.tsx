@@ -47,7 +47,7 @@ export default function AppointmentsPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Delete this appointment?")) return;
+    if (!confirm("Excluir este agendamento?")) return;
     await fetch(`/api/appointments/${id}`, { method: "DELETE" });
     fetchAppointments();
   }
@@ -67,9 +67,9 @@ export default function AppointmentsPage() {
       {/* Page header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Appointments</h1>
+          <h1 className="text-xl font-semibold text-foreground">Agendamentos</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            Manage your team&apos;s schedule and bookings.
+            Gerencie a agenda e as reservas de sua equipe.
           </p>
         </div>
 
@@ -86,7 +86,7 @@ export default function AppointmentsPage() {
               )}
             >
               <List className="h-3.5 w-3.5" />
-              List
+              Lista
             </button>
             <button
               onClick={() => setView("calendar")}
@@ -98,14 +98,14 @@ export default function AppointmentsPage() {
               )}
             >
               <Calendar className="h-3.5 w-3.5" />
-              Calendar
+              Calendário
             </button>
           </div>
 
           <button
             onClick={fetchAppointments}
             className="rounded-lg border border-border p-2 text-muted-foreground hover:bg-muted transition-colors"
-            aria-label="Refresh"
+            aria-label="Atualizar"
           >
             <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
           </button>
@@ -116,7 +116,7 @@ export default function AppointmentsPage() {
             className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             <Plus className="h-4 w-4" />
-            New appointment
+            Novo agendamento
           </button>
         </div>
       </div>

@@ -32,9 +32,9 @@ export function AppointmentList({
     return (
       <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card py-16 text-center">
         <Calendar className="mb-3 h-10 w-10 text-muted-foreground/50" />
-        <p className="text-sm font-medium text-foreground">No appointments</p>
+        <p className="text-sm font-medium text-foreground">Nenhum agendamento</p>
         <p className="mt-1 text-xs text-muted-foreground">
-          Create your first appointment to get started.
+          Crie seu primeiro agendamento para começar.
         </p>
       </div>
     );
@@ -61,7 +61,7 @@ export function AppointmentList({
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium text-sm text-foreground truncate">
-                  {appt.contact?.name ?? appt.contact?.phone ?? "Unknown contact"}
+                  {appt.contact?.name ?? appt.contact?.phone ?? "Contato desconhecido"}
                 </span>
                 <AppointmentStatusBadge status={appt.status} />
               </div>
@@ -69,7 +69,7 @@ export function AppointmentList({
               <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
-                  {format(scheduledAt, "dd/MM/yyyy 'at' HH:mm")}
+                  {format(scheduledAt, "dd/MM/yyyy 'às' HH:mm")}
                 </span>
 
                 {appt.contact?.phone && (
