@@ -25,6 +25,11 @@ always did.
 
 ### Added
 
+- **Sales OS layer (Deskcomm-inspired).** STOP/opt-out, 24h window enforced
+  on the server, WhatsApp AI agent (OpenAI / OpenRouter / Anthropic) with
+  human handoff, follow-up Radar, LGPD export/erase, MFA TOTP, and an
+  append-only audit log. **Migration required:** apply
+  `supabase/migrations/032_sales_os.sql`.
 - **Public REST API (`/api/v1`) — groundwork.** A scoped, revocable
   **API key** system so you can drive wacrm from your own scripts and
   automations. Create keys under **Settings → API keys** (admin+),

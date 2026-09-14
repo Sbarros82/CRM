@@ -51,6 +51,20 @@ function formatTime(iso: string): string {
   return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
+async function contactAllowsMessages(
+  accountId: string,
+  phone: string,
+): Promise<boolean> {
+  const digits = sanitizePhoneForMeta(phone);
+  const { data } = await supabaseAdmin()
+    .from("contacts")
+    .select("opted_out_at")
+    .eq("account_id", accountId)
+    .eq("phone_normalized", digits)
+    .maybeSingle();
+  return !data?.opted_out_at;
+}
+
 export async function sendAppointmentConfirmation(
   accountId: string,
   appointment: {
@@ -61,6 +75,7 @@ export async function sendAppointmentConfirmation(
   }
 ): Promise<void> {
   if (!appointment.contact?.phone) return;
+  if (!(await contactAllowsMessages(accountId, appointment.contact.phone))) return;
 
   const creds = await getWhatsAppToken(accountId);
   if (!creds) return;
@@ -98,6 +113,7 @@ export async function sendAppointmentReminder24h(
   }
 ): Promise<void> {
   if (!appointment.contact?.phone) return;
+  if (!(await contactAllowsMessages(accountId, appointment.contact.phone))) return;
 
   const creds = await getWhatsAppToken(accountId);
   if (!creds) return;
@@ -134,6 +150,7 @@ export async function sendAppointmentReminder1h(
   }
 ): Promise<void> {
   if (!appointment.contact?.phone) return;
+  if (!(await contactAllowsMessages(accountId, appointment.contact.phone))) return;
 
   const creds = await getWhatsAppToken(accountId);
   if (!creds) return;

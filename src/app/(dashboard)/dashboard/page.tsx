@@ -33,6 +33,7 @@ import { ConversationsChart } from '@/components/dashboard/conversations-chart'
 import { PipelineDonut } from '@/components/dashboard/pipeline-donut'
 import { ResponseTimeChart } from '@/components/dashboard/response-time-chart'
 import { ActivityFeed } from '@/components/dashboard/activity-feed'
+import { FollowUpCard } from '@/components/dashboard/follow-up-card'
 
 type RangeDays = 7 | 30 | 90
 
@@ -127,6 +128,8 @@ export default function DashboardPage() {
           Análise em tempo real de conversas, contatos, negócios, transmissões e automações.
         </p>
       </div>
+
+      <FollowUpCard />
 
       {/* Metric cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

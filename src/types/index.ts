@@ -47,6 +47,11 @@ export interface Account {
   name: string;
   /** auth.users.id of the immutable owner. */
   owner_user_id: string;
+  ai_enabled?: boolean;
+  ai_provider?: "openai" | "openrouter" | "anthropic";
+  ai_model?: string;
+  ai_system_prompt?: string | null;
+  follow_up_hours?: number;
   created_at: string;
   updated_at: string;
 }
@@ -98,6 +103,8 @@ export interface Contact {
   email?: string;
   company?: string;
   avatar_url?: string;
+  opted_out_at?: string | null;
+  opted_out_keyword?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -152,6 +159,9 @@ export interface Conversation {
   assigned_agent_id?: string;
   last_message_text?: string;
   last_message_at?: string;
+  last_inbound_at?: string | null;
+  last_outbound_at?: string | null;
+  ai_paused?: boolean;
   unread_count: number;
   created_at: string;
   updated_at: string;

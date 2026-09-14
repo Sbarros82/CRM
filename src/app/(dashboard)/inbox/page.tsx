@@ -601,6 +601,16 @@ export default function InboxPage() {
             onUpdateMessage={handleUpdateMessage}
             onStatusChange={handleStatusChange}
             onAssignChange={handleAssignChange}
+            onAiPauseChange={(id, paused) => {
+              setConversations((prev) =>
+                prev.map((c) =>
+                  c.id === id ? { ...c, ai_paused: paused } : c,
+                ),
+              );
+              setActiveConversation((prev) =>
+                prev && prev.id === id ? { ...prev, ai_paused: paused } : prev,
+              );
+            }}
             onBack={handleCloseConversation}
             resyncToken={resyncToken}
             onRefresh={handleManualRefresh}
@@ -615,7 +625,19 @@ export default function InboxPage() {
             toggle — which is itself desktop-only — never affects it. */}
         {contactPanelOpen && (
           <div className="hidden lg:block">
-            <ContactSidebar contact={activeContact} />
+            <ContactSidebar
+              contact={activeContact}
+              onContactPatch={(patch) => {
+                setActiveContact((prev) => (prev ? { ...prev, ...patch } : prev));
+                setConversations((prev) =>
+                  prev.map((c) =>
+                    c.contact?.id === activeContact?.id
+                      ? { ...c, contact: { ...c.contact!, ...patch } }
+                      : c,
+                  ),
+                );
+              }}
+            />
           </div>
         )}
       </div>

@@ -16,6 +16,7 @@ import {
   LogOut,
   MessageSquare,
   MessagesSquare,
+  Radar,
   Radio,
   Settings,
   Shield,
@@ -90,17 +91,24 @@ interface NavItem {
   beta?: boolean;
 }
 
-// Itens sempre visíveis (independentes do WhatsApp).
-const coreNavItems: NavItem[] = [
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+const atendimentoItems: NavItem[] = [
   { href: "/dashboard", label: "Painel", icon: LayoutDashboard },
-  { href: "/inbox", label: "Chat ao Vivo", icon: MessageSquare },
-  { href: "/chat", label: "Chat Interno", icon: MessagesSquare },
-  { href: "/contacts", label: "Contatos", icon: Users },
-  { href: "/pipelines", label: "Pipelines", icon: GitBranch },
-  { href: "/appointments", label: "Agendamentos", icon: CalendarDays },
+  { href: "/inbox", label: "Inbox", icon: MessageSquare },
+  { href: "/radar", label: "Radar", icon: Radar },
+  { href: "/chat", label: "Chat interno", icon: MessagesSquare },
 ];
 
-// Itens que dependem do WhatsApp configurado.
+const crmItems: NavItem[] = [
+  { href: "/contacts", label: "Contatos", icon: Users },
+  { href: "/pipelines", label: "Funil", icon: GitBranch },
+  { href: "/appointments", label: "Agenda", icon: CalendarDays },
+];
+
 const whatsappNavItems: NavItem[] = [
   { href: "/broadcasts", label: "Transmissões", icon: Radio },
   { href: "/automations", label: "Automações", icon: Zap },
@@ -138,10 +146,12 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
       });
   }, []);
 
-  // Itens de navegação: core + WhatsApp se conectado.
-  const navItems: NavItem[] = [
-    ...coreNavItems,
-    ...(whatsappConnected ? whatsappNavItems : []),
+  const navGroups: NavGroup[] = [
+    { label: "Atendimento", items: atendimentoItems },
+    { label: "CRM", items: crmItems },
+    ...(whatsappConnected
+      ? [{ label: "WhatsApp", items: whatsappNavItems }]
+      : []),
   ];
   // Only surface the account-name strip when it actually carries
   // information. A solo user's personal account is named after them
@@ -200,7 +210,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
       <aside
         className={cn(
           // Mobile: fixed drawer that slides in from the left.
-          "fixed inset-y-0 left-0 z-40 flex h-full w-64 flex-col border-r border-border bg-card",
+          "fixed inset-y-0 left-0 z-40 flex h-full w-64 flex-col border-r border-sidebar-border bg-sidebar",
           "transition-transform duration-200 ease-out will-change-transform",
           open ? "translate-x-0" : "-translate-x-full",
           // Desktop: static, always visible — reset all the mobile framing.
@@ -228,63 +238,68 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
         </div>
 
         {/* Main navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4">
-          <ul className="flex flex-col gap-1">
-            {navItems.map((item) => {
-              const isActive =
-                pathname === item.href ||
-                (item.href !== "/dashboard" && pathname.startsWith(item.href));
+        <nav className="flex-1 overflow-y-auto px-3 py-3">
+          {navGroups.map((group) => (
+            <div key={group.label} className="mb-4">
+              <p className="px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                {group.label}
+              </p>
+              <ul className="flex flex-col gap-0.5">
+                {group.items.map((item) => {
+                  const isActive =
+                    pathname === item.href ||
+                    (item.href !== "/dashboard" && pathname.startsWith(item.href));
 
-              // Badge de não-lidas: WhatsApp inbox ou Chat interno.
-              const showInboxDot =
-                item.href === "/inbox" && totalUnread > 0 && !isActive;
-              const showChatBadge =
-                item.href === "/chat" && totalChatUnread > 0 && !isActive;
+                  const showInboxDot =
+                    item.href === "/inbox" && totalUnread > 0 && !isActive;
+                  const showChatBadge =
+                    item.href === "/chat" && totalChatUnread > 0 && !isActive;
 
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={cn(
-                      // Taller on mobile so fingers can hit the row reliably (≥44px).
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
-                      isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                    )}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    <span className="flex-1">{item.label}</span>
-                    {item.beta && (
-                      <span
-                        aria-label="Beta feature"
-                        className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-300"
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-1.5",
+                          isActive
+                            ? "bg-primary/10 text-primary"
+                            : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                        )}
                       >
-                        Beta
-                      </span>
-                    )}
-                    {showInboxDot && (
-                      <span
-                        aria-label={`${totalUnread} unread conversation${totalUnread === 1 ? "" : "s"}`}
-                        className="relative flex h-2 w-2"
-                      >
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-                      </span>
-                    )}
-                    {showChatBadge && (
-                      <span
-                        aria-label={`${totalChatUnread} mensagem${totalChatUnread === 1 ? "" : "s"} não lida${totalChatUnread === 1 ? "" : "s"}`}
-                        className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground"
-                      >
-                        {totalChatUnread > 99 ? "99+" : totalChatUnread}
-                      </span>
-                    )}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+                        <item.icon className="h-4 w-4" />
+                        <span className="flex-1">{item.label}</span>
+                        {item.beta && (
+                          <span
+                            aria-label="Beta feature"
+                            className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-300"
+                          >
+                            Beta
+                          </span>
+                        )}
+                        {showInboxDot && (
+                          <span
+                            aria-label={`${totalUnread} unread conversation${totalUnread === 1 ? "" : "s"}`}
+                            className="relative flex h-2 w-2"
+                          >
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+                          </span>
+                        )}
+                        {showChatBadge && (
+                          <span
+                            aria-label={`${totalChatUnread} mensagem${totalChatUnread === 1 ? "" : "s"} não lida${totalChatUnread === 1 ? "" : "s"}`}
+                            className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground"
+                          >
+                            {totalChatUnread > 99 ? "99+" : totalChatUnread}
+                          </span>
+                        )}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
 
           <div className="my-4 border-t border-border" />
 

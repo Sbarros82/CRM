@@ -6,6 +6,7 @@ import {
   phoneVariants,
   isRecipientNotAllowedError,
 } from '@/lib/whatsapp/phone-utils'
+import { assertCanSend } from '@/lib/whatsapp/send-guards'
 import { supabaseAdmin } from './admin-client'
 
 // ------------------------------------------------------------
@@ -31,6 +32,8 @@ interface SendTextArgs {
   conversationId: string
   contactId: string
   text: string
+  /** One-shot STOP/START confirmation. */
+  ignoreOptOut?: boolean
 }
 
 interface SendTemplateArgs {
@@ -41,6 +44,7 @@ interface SendTemplateArgs {
   templateName: string
   language?: string
   params?: string[]
+  ignoreOptOut?: boolean
 }
 
 export async function engineSendText(args: SendTextArgs): Promise<{ whatsapp_message_id: string }> {
@@ -70,13 +74,26 @@ async function sendViaMeta(input: SendInput): Promise<{ whatsapp_message_id: str
   // new tenancy column.
   const { data: contact, error: contactErr } = await db
     .from('contacts')
-    .select('id, phone')
+    .select('id, phone, opted_out_at')
     .eq('id', input.contactId)
     .eq('account_id', input.accountId)
     .maybeSingle()
   if (contactErr || !contact?.phone) {
     throw new Error('contact not found for this account')
   }
+
+  const { data: conversation } = await db
+    .from('conversations')
+    .select('last_inbound_at')
+    .eq('id', input.conversationId)
+    .maybeSingle()
+
+  assertCanSend({
+    kind: input.kind === 'template' ? 'template' : 'session',
+    optedOutAt: contact.opted_out_at,
+    lastInboundAt: conversation?.last_inbound_at ?? null,
+    ignoreOptOut: input.ignoreOptOut,
+  })
 
   const sanitized = sanitizePhoneForMeta(contact.phone)
   if (!isValidE164(sanitized)) {
@@ -162,13 +179,15 @@ async function sendViaMeta(input: SendInput): Promise<{ whatsapp_message_id: str
     throw new Error(`sent to Meta but DB insert failed: ${msgErr.message}`)
   }
 
+  const now = new Date().toISOString()
   await db
     .from('conversations')
     .update({
       last_message_text:
         input.kind === 'template' ? `[template:${input.templateName}]` : input.text,
-      last_message_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      last_message_at: now,
+      last_outbound_at: now,
+      updated_at: now,
     })
     .eq('id', input.conversationId)
 

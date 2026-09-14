@@ -6,7 +6,15 @@ import { normalizePhone } from '@/lib/whatsapp/phone-utils'
 import { findExistingContact, isUniqueViolation } from '@/lib/contacts/dedupe'
 import { verifyMetaWebhookSignature } from '@/lib/whatsapp/webhook-signature'
 import { runAutomationsForTrigger } from '@/lib/automations/engine'
+import { engineSendText } from '@/lib/automations/meta-send'
 import { dispatchInboundToFlows } from '@/lib/flows/engine'
+import { maybeDispatchAiReply } from '@/lib/ai/dispatch'
+import { writeAudit } from '@/lib/audit'
+import {
+  classifyOptOutIntent,
+  START_CONFIRMATION,
+  STOP_CONFIRMATION,
+} from '@/lib/whatsapp/opt-out'
 import {
   handleTemplateWebhookChange,
   isTemplateWebhookField,
@@ -617,18 +625,34 @@ async function processMessage(
   }
 
   // Update conversation
+  const nowIso = new Date().toISOString()
   const { error: convError } = await supabaseAdmin()
     .from('conversations')
     .update({
       last_message_text: contentText || `[${message.type}]`,
-      last_message_at: new Date().toISOString(),
+      last_message_at: nowIso,
+      last_inbound_at: nowIso,
       unread_count: (conversation.unread_count || 0) + 1,
-      updated_at: new Date().toISOString(),
+      updated_at: nowIso,
     })
     .eq('id', conversation.id)
 
   if (convError) {
     console.error('Error updating conversation:', convError)
+  }
+
+  const inboundText = contentText ?? message.text?.body ?? ''
+  const optIntent = classifyOptOutIntent(inboundText)
+  if (optIntent) {
+    await handleOptOutIntent({
+      accountId,
+      configOwnerUserId,
+      contactId: contactRecord.id,
+      conversationId: conversation.id,
+      intent: optIntent,
+      keyword: inboundText,
+    })
+    return
   }
 
   // If this contact was a recent broadcast recipient, flag the reply
@@ -682,7 +706,6 @@ async function processMessage(
   // message all exist before any step — including send_message — runs.
   // Fire-and-forget: a slow or failing automation must not block the
   // webhook's 200 OK response to Meta.
-  const inboundText = contentText ?? message.text?.body ?? ''
   const automationTriggers: (
     | 'new_contact_created'
     | 'first_inbound_message'
@@ -713,6 +736,66 @@ async function processMessage(
       },
     }).catch((err) => console.error('[automations] dispatch failed:', err))
   }
+
+  if (!flowConsumed) {
+    maybeDispatchAiReply({
+      accountId,
+      conversationId: conversation.id,
+      contactId: contactRecord.id,
+      inboundText,
+    }).catch((err) => console.error('[ai] dispatch failed:', err))
+  }
+}
+
+async function handleOptOutIntent(args: {
+  accountId: string
+  configOwnerUserId: string
+  contactId: string
+  conversationId: string
+  intent: 'stop' | 'start'
+  keyword: string
+}): Promise<void> {
+  const db = supabaseAdmin()
+  if (args.intent === 'stop') {
+    await db
+      .from('contacts')
+      .update({
+        opted_out_at: new Date().toISOString(),
+        opted_out_keyword: args.keyword.slice(0, 40),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', args.contactId)
+  } else {
+    await db
+      .from('contacts')
+      .update({
+        opted_out_at: null,
+        opted_out_keyword: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', args.contactId)
+  }
+
+  try {
+    await engineSendText({
+      accountId: args.accountId,
+      userId: args.configOwnerUserId,
+      conversationId: args.conversationId,
+      contactId: args.contactId,
+      text: args.intent === 'stop' ? STOP_CONFIRMATION : START_CONFIRMATION,
+      ignoreOptOut: true,
+    })
+  } catch (err) {
+    console.error('[webhook] opt-out confirmation failed:', err)
+  }
+
+  await writeAudit(db, {
+    accountId: args.accountId,
+    action: args.intent === 'stop' ? 'contact.opt_out' : 'contact.opt_in',
+    entityType: 'contact',
+    entityId: args.contactId,
+    metadata: { keyword: args.keyword },
+  })
 }
 
 async function parseMessageContent(

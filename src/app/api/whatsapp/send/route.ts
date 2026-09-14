@@ -21,6 +21,11 @@ import {
 } from '@/lib/rate-limit'
 import type { MessageTemplate } from '@/types'
 import { isMessageTemplate } from '@/lib/whatsapp/template-row-guard'
+import {
+  assertCanSend,
+  SendBlockedError,
+  sendBlockHttpStatus,
+} from '@/lib/whatsapp/send-guards'
 
 export async function POST(request: Request) {
   try {
@@ -154,6 +159,22 @@ export async function POST(request: Request) {
         { error: 'Contact phone number not found' },
         { status: 400 }
       )
+    }
+
+    try {
+      assertCanSend({
+        kind: message_type === 'template' ? 'template' : 'session',
+        optedOutAt: contact.opted_out_at,
+        lastInboundAt: conversation.last_inbound_at,
+      })
+    } catch (err) {
+      if (err instanceof SendBlockedError) {
+        return NextResponse.json(
+          { error: err.message, code: err.code },
+          { status: sendBlockHttpStatus(err.code) },
+        )
+      }
+      throw err
     }
 
     // Sanitize and validate phone
@@ -389,12 +410,15 @@ export async function POST(request: Request) {
     }
 
     // Update conversation
+    const now = new Date().toISOString()
     await supabase
       .from('conversations')
       .update({
         last_message_text: content_text || `[${message_type}]`,
-        last_message_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        last_message_at: now,
+        last_outbound_at: now,
+        ai_paused: true,
+        updated_at: now,
       })
       .eq('id', conversation_id)
 

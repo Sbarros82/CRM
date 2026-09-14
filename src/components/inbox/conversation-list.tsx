@@ -39,11 +39,11 @@ const STATUS_COLORS: Record<ConversationStatus, string> = {
 type InboxFilter = ConversationStatus | "all" | "unread";
 
 const FILTER_OPTIONS: { label: string; value: InboxFilter }[] = [
-  { label: "All", value: "all" },
-  { label: "Unread", value: "unread" },
-  { label: "Open", value: "open" },
-  { label: "Pending", value: "pending" },
-  { label: "Closed", value: "closed" },
+  { label: "Todas", value: "all" },
+  { label: "Não lidas", value: "unread" },
+  { label: "Abertas", value: "open" },
+  { label: "Pendentes", value: "pending" },
+  { label: "Fechadas", value: "closed" },
 ];
 
 export function ConversationList({
@@ -160,7 +160,7 @@ export function ConversationList({
           <Input
             value={search}
             onChange={handleSearchChange}
-            placeholder="Search conversations..."
+            placeholder="Buscar conversas..."
             className="border-border bg-muted pl-9 text-sm text-foreground placeholder-muted-foreground focus:border-primary/50"
           />
         </div>
@@ -205,7 +205,7 @@ export function ConversationList({
           </div>
         ) : filtered.length === 0 ? (
           <div className="px-4 py-12 text-center">
-            <p className="text-sm text-muted-foreground">No conversations found</p>
+            <p className="text-sm text-muted-foreground">Nenhuma conversa</p>
           </div>
         ) : (
           <div className="flex flex-col">
@@ -280,9 +280,14 @@ function ConversationItem({
         </div>
         <div className="mt-0.5 flex items-center justify-between gap-2">
           <p className="truncate text-xs text-muted-foreground">
-            {conversation.last_message_text || "No messages yet"}
+            {conversation.last_message_text || "Sem mensagens"}
           </p>
           <div className="flex shrink-0 items-center gap-1.5">
+            {contact?.opted_out_at && (
+              <span className="rounded bg-destructive/15 px-1 text-[9px] font-semibold uppercase text-destructive">
+                STOP
+              </span>
+            )}
             {conversation.unread_count > 0 && (
               <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
                 {conversation.unread_count}

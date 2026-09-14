@@ -19,14 +19,17 @@ import {
 import { ModeToggle } from "@/components/layout/mode-toggle";
 
 const pageTitles: Record<string, string> = {
-  "/dashboard": "Dashboard",
+  "/dashboard": "Painel",
   "/inbox": "Inbox",
-  "/contacts": "Contacts",
-  "/pipelines": "Pipelines",
-  "/broadcasts": "Broadcasts",
-  "/automations": "Automations",
-  "/settings": "Settings",
-  "/chat": "Chat Interno",
+  "/radar": "Radar",
+  "/contacts": "Contatos",
+  "/pipelines": "Funil",
+  "/broadcasts": "Transmissões",
+  "/automations": "Automações",
+  "/settings": "Configurações",
+  "/chat": "Chat interno",
+  "/appointments": "Agenda",
+  "/flows": "Fluxos",
 };
 
 function getPageTitle(pathname: string): string {

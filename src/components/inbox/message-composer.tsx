@@ -98,6 +98,7 @@ interface MessageComposerProps {
   onOpenTemplates: () => void;
   replyTo?: ReplyDraft | null;
   onClearReply?: () => void;
+  optedOut?: boolean;
 }
 
 function formatDuration(seconds: number): string {
@@ -119,6 +120,7 @@ export function MessageComposer({
   onOpenTemplates,
   replyTo,
   onClearReply,
+  optedOut = false,
 }: MessageComposerProps) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
@@ -159,7 +161,7 @@ export function MessageComposer({
   const canSend = useCan("send-messages");
   const readOnly = !canSend;
   // Media (like free-form text) is only allowed inside the 24h window.
-  const inputsDisabled = readOnly || sessionExpired;
+  const inputsDisabled = readOnly || sessionExpired || optedOut;
 
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
@@ -191,7 +193,7 @@ export function MessageComposer({
 
   const handleSend = useCallback(async () => {
     const trimmed = text.trim();
-    if (!trimmed || sending || sessionExpired) return;
+    if (!trimmed || sending || sessionExpired || optedOut) return;
 
     setSending(true);
     try {
@@ -203,7 +205,7 @@ export function MessageComposer({
     } finally {
       setSending(false);
     }
-  }, [text, sending, sessionExpired, onSend, replyTo?.id]);
+  }, [text, sending, sessionExpired, optedOut, onSend, replyTo?.id]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -388,10 +390,18 @@ export function MessageComposer({
           />
         </div>
       )}
-      {sessionExpired && (
+      {optedOut && (
+        <div className="mb-2 rounded-lg bg-destructive/10 px-3 py-2">
+          <p className="text-xs text-destructive">
+            Este contato pediu para não receber mais mensagens (STOP). Reative no
+            painel ao lado se ele voltar a consentir.
+          </p>
+        </div>
+      )}
+      {sessionExpired && !optedOut && (
         <div className="mb-2 flex items-center justify-between rounded-lg bg-amber-500/10 px-3 py-2">
           <p className="text-xs text-amber-400">
-            24-hour session expired. Use a template to re-engage.
+            Janela de 24h encerrada. Use um modelo aprovado para retomar.
           </p>
           <Button
             variant="ghost"
@@ -400,7 +410,7 @@ export function MessageComposer({
             onClick={onOpenTemplates}
           >
             <LayoutTemplate className="mr-1 h-3 w-3" />
-            Templates
+            Modelos
           </Button>
         </div>
       )}
@@ -535,7 +545,7 @@ export function MessageComposer({
                   ? "Session expired - use a template"
                   : "Type a message... (Shift+Enter for new line)"
             }
-            disabled={sessionExpired || readOnly}
+            disabled={sessionExpired || readOnly || optedOut}
             rows={1}
             // Textarea keeps its own inline title — the GatedButton
             // wrapping pattern doesn't apply to non-button inputs.
@@ -551,7 +561,7 @@ export function MessageComposer({
             size="sm"
             canAct={!readOnly}
             gateReason="send messages"
-            disabled={!text.trim() || sessionExpired || sending}
+            disabled={!text.trim() || sessionExpired || sending || optedOut}
             onClick={handleSend}
             className="h-9 w-9 shrink-0 bg-primary p-0 hover:bg-primary/90 disabled:opacity-40"
           >

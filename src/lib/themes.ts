@@ -14,6 +14,7 @@
  */
 
 export const THEME_IDS = [
+  "sage",
   "violet",
   "emerald",
   "cobalt",
@@ -23,7 +24,7 @@ export const THEME_IDS = [
 
 export type ThemeId = (typeof THEME_IDS)[number];
 
-export const DEFAULT_THEME: ThemeId = "violet";
+export const DEFAULT_THEME: ThemeId = "sage";
 
 export const STORAGE_KEY = "wacrm.theme";
 
@@ -68,9 +69,15 @@ export interface ThemeMeta {
 
 export const THEMES: ReadonlyArray<ThemeMeta> = [
   {
+    id: "sage",
+    name: "Sálvia",
+    tagline: "Verde quente do Deskcomm — vendas, não dashboard genérico.",
+    swatch: "#67885d",
+  },
+  {
     id: "violet",
     name: "Violeta",
-    tagline: "O padrão — confiante e levemente divertido.",
+    tagline: "Confiante e levemente divertido.",
     swatch: "oklch(0.526 0.247 293)",
   },
   {

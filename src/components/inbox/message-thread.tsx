@@ -17,6 +17,7 @@ import type {
   Profile,
 } from "@/types";
 import {
+  Bot,
   MessageSquare,
   ChevronDown,
   UserPlus,
@@ -74,6 +75,7 @@ interface MessageThreadProps {
     conversationId: string,
     assignedAgentId: string | null,
   ) => void;
+  onAiPauseChange?: (conversationId: string, paused: boolean) => void;
   /**
    * On mobile, the thread is shown full-screen with the conversation list
    * hidden. This callback lets the page deselect the active conversation
@@ -159,6 +161,7 @@ export function MessageThread({
   onUpdateMessage,
   onStatusChange,
   onAssignChange,
+  onAiPauseChange,
   onBack,
   resyncToken = 0,
   onRefresh,
@@ -905,6 +908,35 @@ export function MessageThread({
             </button>
           )}
 
+          <button
+            type="button"
+            title={conversation.ai_paused ? "Retomar IA nesta conversa" : "Pausar IA nesta conversa"}
+            onClick={async () => {
+              const next = !conversation.ai_paused;
+              const res = await fetch("/api/ai/pause", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  conversationId: conversation.id,
+                  paused: next,
+                }),
+              });
+              if (!res.ok) {
+                toast.error("Não foi possível alterar a IA");
+                return;
+              }
+              onAiPauseChange?.(conversation.id, next);
+              toast.success(next ? "IA pausada — humano no comando" : "IA retomada");
+            }}
+            className={cn(
+              "inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs transition-colors hover:bg-muted",
+              conversation.ai_paused ? "text-muted-foreground" : "text-primary",
+            )}
+          >
+            <Bot className="h-3.5 w-3.5" />
+            {conversation.ai_paused ? "IA off" : "IA on"}
+          </button>
+
           {/* Status dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger className={cn(
@@ -1074,6 +1106,7 @@ export function MessageThread({
       <MessageComposer
         conversationId={conversation.id}
         sessionExpired={sessionInfo.expired}
+        optedOut={!!contact.opted_out_at}
         onSend={handleSend}
         onSendMedia={handleSendMedia}
         onOpenTemplates={handleOpenTemplates}

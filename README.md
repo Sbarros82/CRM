@@ -20,6 +20,10 @@ Esta plataforma é o seu produto — clone ou faça um fork para rodar seu próp
 - **Transmissões (Broadcasts)** com envio em massa usando modelos aprovados pela Meta, acompanhamento de entrega/leitura e variáveis dinâmicas por destinatário.
 - **Automações sem código (No-code)** — gatilhos baseados em mensagens recebidas, novos contatos, palavras-chave ou horários; ramificações condicionais, esperas, aplicação de tags e envio de webhooks. Construtor visual.
 - **Painel de métricas em tempo real** — tempos de resposta, volume diário de mensagens, valor do funil de vendas e feed de atividades gerais.
+- **Radar de follow-up** — conversas esfriando sem resposta, com prazo configurável.
+- **Agente de IA no WhatsApp** — atende, qualifica e passa para um humano; OpenAI, OpenRouter ou Anthropic.
+- **STOP / opt-out** — descadastro por palavra-chave e bloqueio da janela de 24h no servidor.
+- **LGPD** — exportar e anonimizar dados da conta; MFA TOTP opcional.
 - **Chat Interno** — Canais de comunicação e mensagens diretas (DMs) entre funcionários estilo Slack, com controle de presença online/offline.
 - **Contas de equipe** — convide colaboradores por link com controle de acessos baseado em cargos (proprietário, administrador, agente, leitor). Toda a instalação é isolada por conta.
 - **Gerenciamento de conta** — alteração de e-mail, senha, avatar e encerramento de sessão global.

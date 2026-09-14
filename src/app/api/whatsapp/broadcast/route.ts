@@ -175,6 +175,18 @@ export async function POST(request: Request) {
     }
     const templateRow = rawTemplateRow ?? null
 
+    const { data: optedRows } = await supabase
+      .from('contacts')
+      .select('phone, phone_normalized, opted_out_at')
+      .eq('account_id', accountId)
+      .not('opted_out_at', 'is', null)
+    const optedPhones = new Set(
+      (optedRows ?? [])
+        .flatMap((c) => [c.phone, c.phone_normalized])
+        .filter((p): p is string => typeof p === 'string' && p.length > 0)
+        .map((p) => sanitizePhoneForMeta(p)),
+    )
+
     const results: BroadcastResult[] = []
     let sentCount = 0
     let failedCount = 0
@@ -187,6 +199,16 @@ export async function POST(request: Request) {
           phone: recipient.phone,
           status: 'failed',
           error: 'Invalid phone number format',
+        })
+        failedCount++
+        continue
+      }
+
+      if (optedPhones.has(sanitized)) {
+        results.push({
+          phone: recipient.phone,
+          status: 'failed',
+          error: 'Contact opted out',
         })
         failedCount++
         continue

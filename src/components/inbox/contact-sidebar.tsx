@@ -15,16 +15,20 @@ import {
   DollarSign,
   StickyNote,
   Plus,
+  Ban,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 
 interface ContactSidebarProps {
   contact: Contact | null;
+  onContactPatch?: (patch: Partial<Contact>) => void;
 }
 
-export function ContactSidebar({ contact }: ContactSidebarProps) {
+export function ContactSidebar({ contact, onContactPatch }: ContactSidebarProps) {
   const { accountId } = useAuth();
   const [copied, setCopied] = useState(false);
   const [deals, setDeals] = useState<Deal[]>([]);
@@ -146,6 +150,11 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
             <h3 className="mt-3 text-sm font-semibold text-foreground">
               {displayName}
             </h3>
+            {contact.opted_out_at && (
+              <span className="mt-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-destructive">
+                Opt-out
+              </span>
+            )}
             {contact.company && (
               <p className="text-xs text-muted-foreground">{contact.company}</p>
             )}
@@ -153,6 +162,38 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
 
           {/* Phone */}
           <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+              <div className="flex items-center gap-2 text-sm">
+                <Ban className="h-4 w-4 text-muted-foreground" />
+                <span>Não receber mensagens</span>
+              </div>
+              <Switch
+                checked={!!contact.opted_out_at}
+                onCheckedChange={async (checked) => {
+                  const supabase = createClient();
+                  const patch = checked
+                    ? {
+                        opted_out_at: new Date().toISOString(),
+                        opted_out_keyword: "manual",
+                      }
+                    : { opted_out_at: null, opted_out_keyword: null };
+                  const { error } = await supabase
+                    .from("contacts")
+                    .update(patch)
+                    .eq("id", contact.id);
+                  if (error) {
+                    toast.error("Não foi possível atualizar o opt-out");
+                    return;
+                  }
+                  onContactPatch?.(patch);
+                  toast.success(
+                    checked
+                      ? "Contato descadastrado"
+                      : "Contato voltou a receber mensagens",
+                  );
+                }}
+              />
+            </div>
             <button
               onClick={handleCopyPhone}
               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"

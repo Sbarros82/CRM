@@ -8,6 +8,7 @@ import {
   type MediaKind,
 } from '@/lib/whatsapp/meta-api'
 import { decrypt } from '@/lib/whatsapp/encryption'
+import { assertCanSend, type OutboundKind } from '@/lib/whatsapp/send-guards'
 import {
   sanitizePhoneForMeta,
   isValidE164,
@@ -57,10 +58,50 @@ interface SendTextEngineArgs {
  * `engineSendBase` once the v2 features (templates with variables,
  * media sends) settle.
  */
+async function guardFlowSend(
+  db: ReturnType<typeof supabaseAdmin>,
+  args: {
+    accountId: string
+    contactId: string
+    conversationId: string
+    kind: OutboundKind
+  },
+): Promise<void> {
+  const [{ data: contact }, { data: conv }] = await Promise.all([
+    db
+      .from('contacts')
+      .select('opted_out_at')
+      .eq('id', args.contactId)
+      .eq('account_id', args.accountId)
+      .maybeSingle(),
+    db
+      .from('conversations')
+      .select('last_inbound_at')
+      .eq('id', args.conversationId)
+      .maybeSingle(),
+  ])
+  assertCanSend({
+    kind: args.kind,
+    optedOutAt: contact?.opted_out_at ?? null,
+    lastInboundAt: conv?.last_inbound_at ?? null,
+  })
+}
+
+function outboundStamp(lastMessageText: string) {
+  const now = new Date().toISOString()
+  return {
+    last_message_text: lastMessageText,
+    last_message_at: now,
+    last_outbound_at: now,
+    updated_at: now,
+  }
+}
+
 export async function engineSendText(
   args: SendTextEngineArgs,
 ): Promise<{ whatsapp_message_id: string }> {
   const db = supabaseAdmin()
+  await guardFlowSend(db, { ...args, kind: 'session' })
 
   const { data: contact, error: contactErr } = await db
     .from('contacts')
@@ -134,11 +175,7 @@ export async function engineSendText(
 
   await db
     .from('conversations')
-    .update({
-      last_message_text: args.text,
-      last_message_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
+    .update(outboundStamp(args.text))
     .eq('id', args.conversationId)
 
   return { whatsapp_message_id: waMessageId }
@@ -170,6 +207,7 @@ export async function engineSendMedia(
   args: SendMediaEngineArgs,
 ): Promise<{ whatsapp_message_id: string }> {
   const db = supabaseAdmin()
+  await guardFlowSend(db, { ...args, kind: 'session' })
 
   const { data: contact, error: contactErr } = await db
     .from('contacts')
@@ -251,11 +289,7 @@ export async function engineSendMedia(
 
   await db
     .from('conversations')
-    .update({
-      last_message_text: preview,
-      last_message_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
+    .update(outboundStamp(preview))
     .eq('id', args.conversationId)
 
   return { whatsapp_message_id: waMessageId }
@@ -319,6 +353,7 @@ async function sendInteractiveViaMeta(
   input: SendInput,
 ): Promise<{ whatsapp_message_id: string }> {
   const db = supabaseAdmin()
+  await guardFlowSend(db, { ...input, kind: 'session' })
 
   // Scope the contact + whatsapp_config lookups by account_id —
   // same defense-in-depth rationale as automations/meta-send.ts.
@@ -423,11 +458,7 @@ async function sendInteractiveViaMeta(
 
   await db
     .from('conversations')
-    .update({
-      last_message_text: input.bodyText,
-      last_message_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
+    .update(outboundStamp(input.bodyText))
     .eq('id', input.conversationId)
 
   return { whatsapp_message_id: waMessageId }
