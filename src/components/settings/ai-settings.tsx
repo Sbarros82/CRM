@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { SettingsPanelHead } from "./settings-panel-head";
+import type { HandoffMode } from "@/lib/ai/handoff-meta";
 import type { AiProvider } from "@/lib/ai/types";
 
 interface AiForm {
@@ -19,6 +20,8 @@ interface AiForm {
   systemPrompt: string;
   followUpHours: number;
   hasApiKey: boolean;
+  notifyPhones: string;
+  handoffMode: HandoffMode;
 }
 
 export function AiSettingsPanel() {
@@ -42,6 +45,8 @@ export function AiSettingsPanel() {
           systemPrompt: json.settings.systemPrompt ?? json.defaultPrompt,
           followUpHours: json.settings.followUpHours,
           hasApiKey: json.settings.hasApiKey,
+          notifyPhones: (json.settings.handoff?.phones ?? []).join("\n"),
+          handoffMode: json.settings.handoff?.mode ?? "queue",
         });
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Falha ao carregar IA");
@@ -67,6 +72,8 @@ export function AiSettingsPanel() {
           model: form.model,
           systemPrompt: form.systemPrompt,
           followUpHours: form.followUpHours,
+          notifyPhones: form.notifyPhones,
+          handoffMode: form.handoffMode,
           apiKey: apiKey.trim() || undefined,
         }),
       });
@@ -102,7 +109,7 @@ export function AiSettingsPanel() {
     <section className="max-w-2xl animate-in fade-in-50 duration-200">
       <SettingsPanelHead
         title="Agente de IA"
-        description="Atende no WhatsApp, qualifica o lead e passa para um humano quando pedirem. A chave fica criptografada no servidor — nunca volta para o navegador."
+        description="Atende no WhatsApp, explica o produto, qualifica o lead e passa para um humano fechar. A chave fica criptografada no servidor — nunca volta para o navegador."
       />
 
       <div className="space-y-6 rounded-xl border border-border bg-card p-5">
@@ -191,10 +198,55 @@ export function AiSettingsPanel() {
         </div>
 
         <div className="space-y-1.5">
+          <Label htmlFor="handoff-mode">Quando a IA passar para humano</Label>
+          <select
+            id="handoff-mode"
+            value={form.handoffMode}
+            onChange={(e) =>
+              setForm((prev) =>
+                prev
+                  ? { ...prev, handoffMode: e.target.value as HandoffMode }
+                  : prev,
+              )
+            }
+            className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
+          >
+            <option value="queue">Fila da equipe — qualquer um pega</option>
+            <option value="online">Quem estiver online no Snap</option>
+            <option value="owner">Só o dono da conta</option>
+          </select>
+          <p className="text-xs text-muted-foreground">
+            A conversa fica em Inbox → Humano. O primeiro da equipe que
+            responder assume o lead. Convide vendedores em Membros.
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="notify-phones">WhatsApp da equipe (avisos)</Label>
+          <Textarea
+            id="notify-phones"
+            rows={3}
+            placeholder={"82 98181-2000\n11 98888-7777"}
+            value={form.notifyPhones}
+            onChange={(e) =>
+              setForm((prev) =>
+                prev ? { ...prev, notifyPhones: e.target.value } : prev,
+              )
+            }
+          />
+          <p className="text-xs text-muted-foreground">
+            Um número por linha, o celular de cada vendedor. Eles recebem
+            “lead pronto para fechar” no WhatsApp. Esse número precisa ter
+            falado com o WhatsApp da empresa nas últimas 24h. Não use o
+            mesmo número do cliente.
+          </p>
+        </div>
+
+        <div className="space-y-1.5">
           <Label htmlFor="ai-prompt">Instruções do agente</Label>
           <Textarea
             id="ai-prompt"
-            rows={8}
+            rows={16}
             value={form.systemPrompt}
             onChange={(e) =>
               setForm((prev) =>
@@ -202,6 +254,11 @@ export function AiSettingsPanel() {
               )
             }
           />
+          <p className="text-xs text-muted-foreground">
+            Inclua nome e triagem (Snap, site/landing, automação), preços oficiais
+            do Snap e quando passar para um consultor. Não invente preço de site.
+            O cliente só vê a resposta curta, não este texto.
+          </p>
         </div>
 
         <Button onClick={save} disabled={saving}>

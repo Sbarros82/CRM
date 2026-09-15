@@ -21,6 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ContactAvatarPicker } from "@/components/contacts/contact-avatar-picker";
 import { format } from "date-fns";
 
 interface ContactSidebarProps {
@@ -128,7 +129,6 @@ export function ContactSidebar({ contact, onContactPatch }: ContactSidebarProps)
   }
 
   const displayName = contact.name || contact.phone;
-  const initials = displayName.charAt(0).toUpperCase();
 
   return (
     <div className="flex h-full w-70 flex-col border-l border-border bg-card">
@@ -136,17 +136,14 @@ export function ContactSidebar({ contact, onContactPatch }: ContactSidebarProps)
         <div className="p-4">
           {/* Contact Info */}
           <div className="flex flex-col items-center text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-lg font-semibold text-foreground">
-              {contact.avatar_url ? (
-                <img
-                  src={contact.avatar_url}
-                  alt={displayName}
-                  className="h-16 w-16 rounded-full object-cover"
-                />
-              ) : (
-                initials
-              )}
-            </div>
+            <ContactAvatarPicker
+              contact={contact}
+              onPatched={onContactPatch}
+              className="h-16 w-16 text-lg"
+            />
+            <p className="mt-2 text-[10px] text-muted-foreground">
+              Clique para enviar uma foto
+            </p>
             <h3 className="mt-3 text-sm font-semibold text-foreground">
               {displayName}
             </h3>

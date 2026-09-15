@@ -21,6 +21,7 @@ import { NextResponse } from "next/server";
 import type { PostgrestError } from "@supabase/supabase-js";
 
 import { hashInviteToken } from "@/lib/auth/invitations";
+import { joinAccountPublicChatChannels } from "@/lib/chat/join-public-channels";
 import {
   checkRateLimit,
   rateLimitResponse,
@@ -86,6 +87,10 @@ export async function POST(
   });
 
   if (error) return rpcErrorToResponse(error);
+
+  if (typeof accountId === "string" && user.id) {
+    await joinAccountPublicChatChannels(accountId, user.id);
+  }
 
   return NextResponse.json({ ok: true, accountId });
 }

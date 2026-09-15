@@ -134,6 +134,18 @@ describe("phoneVariants", () => {
     // 1-char input is shorter than all ccLen values; both loops skip.
     expect(phoneVariants("1")).toEqual(["1"]);
   });
+
+  it("inserts the Brazil mobile 9 after DDD when wa_id omitted it", () => {
+    const out = phoneVariants("558281812000");
+    expect(out[0]).toBe("558281812000");
+    expect(out).toContain("5582981812000");
+  });
+
+  it("drops the Brazil mobile 9 when the stored number already has it", () => {
+    const out = phoneVariants("5582981812000");
+    expect(out[0]).toBe("5582981812000");
+    expect(out).toContain("558281812000");
+  });
 });
 
 describe("isRecipientNotAllowedError", () => {

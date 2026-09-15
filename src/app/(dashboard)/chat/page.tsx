@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useChatChannels } from "@/hooks/use-chat-channels";
 import { usePresence } from "@/hooks/use-presence";
@@ -10,40 +11,59 @@ import { MembersPanel } from "@/components/chat/members-panel";
 import { CreateChannelDialog } from "@/components/chat/create-channel-dialog";
 import { NewDmDialog } from "@/components/chat/new-dm-dialog";
 import { createClient } from "@/lib/supabase/client";
+import { setFocusedChatChannel } from "@/lib/chat/focused-channel";
 import type { ChatChannelMember } from "@/types";
 
 export default function ChatPage() {
   const { user, accountId } = useAuth();
-  const { channels, availableChannels, loading: channelsLoading, markAsRead, refetch, joinChannel } = useChatChannels();
+  const searchParams = useSearchParams();
+  const requestedChannelId = searchParams.get("c");
+  const { channels, availableChannels, markAsRead, refetch, joinChannel } = useChatChannels();
   const { getPresence, getRow, now } = usePresence();
 
-  const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
+  const [activeChannelId, setActiveChannelId] = useState<string | null>(
+    requestedChannelId,
+  );
   const [channelMembers, setChannelMembers] = useState<ChatChannelMember[]>([]);
+  const [dmMembers, setDmMembers] = useState<ChatChannelMember[]>([]);
   const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [showNewDm, setShowNewDm] = useState(false);
   const [showMembersPanel, setShowMembersPanel] = useState(true);
 
   const activeChannel = channels.find((c) => c.id === activeChannelId) ?? null;
 
-  // Seleciona o primeiro canal ao carregar.
   useEffect(() => {
-    if (!activeChannelId && channels.length > 0) {
+    if (requestedChannelId) setActiveChannelId(requestedChannelId);
+  }, [requestedChannelId]);
+
+  useEffect(() => {
+    setFocusedChatChannel(activeChannelId);
+    return () => setFocusedChatChannel(null);
+  }, [activeChannelId]);
+
+  // Seleciona o canal pedido na URL, ou o primeiro ao carregar.
+  useEffect(() => {
+    if (activeChannelId) return;
+    if (requestedChannelId && channels.some((c) => c.id === requestedChannelId)) {
+      setActiveChannelId(requestedChannelId);
+      return;
+    }
+    if (channels.length > 0) {
       setActiveChannelId(channels[0].id);
     }
-  }, [channels, activeChannelId]);
+  }, [channels, activeChannelId, requestedChannelId]);
 
-  // Carrega membros do canal ativo.
+  // Carrega membros do canal ativo e atualiza se alguém entrar.
   useEffect(() => {
     if (!activeChannelId) {
       setChannelMembers([]);
       return;
     }
 
-    const supabase = createClient();
     let cancelled = false;
+    const supabase = createClient();
 
-    (async () => {
-      // Membros do canal + perfis.
+    const loadChannelMembers = async () => {
       const { data: memberRows } = await supabase
         .from("chat_channel_members")
         .select("channel_id, user_id, last_read_at, joined_at")
@@ -62,8 +82,11 @@ export default function ChatPage() {
       const profileMap = new Map(
         (profiles ?? []).map((p) => [
           p.user_id as string,
-          { full_name: (p.full_name as string) ?? "Membro", avatar_url: p.avatar_url as string | null },
-        ])
+          {
+            full_name: (p.full_name as string) ?? "Membro",
+            avatar_url: p.avatar_url as string | null,
+          },
+        ]),
       );
 
       setChannelMembers(
@@ -74,12 +97,85 @@ export default function ChatPage() {
           joined_at: m.joined_at as string,
           full_name: profileMap.get(m.user_id as string)?.full_name,
           avatar_url: profileMap.get(m.user_id as string)?.avatar_url,
-        }))
+        })),
+      );
+    };
+
+    void loadChannelMembers();
+
+    const watch = supabase
+      .channel(`chat-members-${activeChannelId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "chat_channel_members",
+          filter: `channel_id=eq.${activeChannelId}`,
+        },
+        () => {
+          void loadChannelMembers();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(watch);
+    };
+  }, [activeChannelId]);
+
+  // Nomes dos parceiros de DM — o painel do canal ativo não cobre os outros DMs.
+  useEffect(() => {
+    const dmIds = channels.filter((c) => c.is_dm).map((c) => c.id);
+    if (dmIds.length === 0) {
+      setDmMembers([]);
+      return;
+    }
+
+    const supabase = createClient();
+    let cancelled = false;
+
+    (async () => {
+      const { data: memberRows } = await supabase
+        .from("chat_channel_members")
+        .select("channel_id, user_id, last_read_at, joined_at")
+        .in("channel_id", dmIds);
+      if (cancelled || !memberRows) return;
+
+      const userIds = [...new Set(memberRows.map((m) => m.user_id as string))];
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, avatar_url")
+        .in("user_id", userIds);
+      if (cancelled) return;
+
+      const profileMap = new Map(
+        (profiles ?? []).map((p) => [
+          p.user_id as string,
+          {
+            full_name: (p.full_name as string) ?? "Membro",
+            avatar_url: p.avatar_url as string | null,
+          },
+        ]),
+      );
+
+      setDmMembers(
+        memberRows.map((m) => ({
+          channel_id: m.channel_id as string,
+          user_id: m.user_id as string,
+          last_read_at: m.last_read_at as string | null,
+          joined_at: m.joined_at as string,
+          full_name: profileMap.get(m.user_id as string)?.full_name,
+          avatar_url: profileMap.get(m.user_id as string)?.avatar_url,
+        })),
       );
     })();
 
-    return () => { cancelled = true; };
-  }, [activeChannelId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [channels]);
 
   // Para DMs: nome do parceiro.
   const dmPartnerName = useCallback(() => {
@@ -113,11 +209,6 @@ export default function ChatPage() {
 
   if (!user || !accountId) return null;
 
-  // Todos os membros de todos os canais/DMs para o painel (membros do canal ativo).
-  const allDmMembers = channels
-    .filter((c) => c.is_dm)
-    .flatMap((c) => channelMembers.filter((m) => m.channel_id === c.id));
-
   return (
     <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
       {/* ── Sidebar de canais (240px) ── */}
@@ -126,7 +217,7 @@ export default function ChatPage() {
           channels={channels}
           availableChannels={availableChannels}
           activeChannelId={activeChannelId}
-          members={[...channelMembers, ...allDmMembers]}
+          members={[...channelMembers, ...dmMembers]}
           getPresence={getPresence}
           currentUserId={user.id}
           onSelectChannel={(id) => {

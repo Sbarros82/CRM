@@ -36,11 +36,12 @@ const STATUS_COLORS: Record<ConversationStatus, string> = {
   closed: "bg-muted-foreground",
 };
 
-type InboxFilter = ConversationStatus | "all" | "unread";
+type InboxFilter = ConversationStatus | "all" | "unread" | "human";
 
 const FILTER_OPTIONS: { label: string; value: InboxFilter }[] = [
   { label: "Todas", value: "all" },
   { label: "Não lidas", value: "unread" },
+  { label: "Humano", value: "human" },
   { label: "Abertas", value: "open" },
   { label: "Pendentes", value: "pending" },
   { label: "Fechadas", value: "closed" },
@@ -115,6 +116,8 @@ export function ConversationList({
 
     if (filter === "unread") {
       result = result.filter((c) => c.unread_count > 0);
+    } else if (filter === "human") {
+      result = result.filter((c) => c.ai_paused && c.status === "pending");
     } else if (filter !== "all") {
       result = result.filter((c) => c.status === filter);
     }
@@ -283,6 +286,11 @@ function ConversationItem({
             {conversation.last_message_text || "Sem mensagens"}
           </p>
           <div className="flex shrink-0 items-center gap-1.5">
+            {conversation.ai_paused && conversation.status === "pending" && (
+              <span className="rounded bg-amber-500/15 px-1 text-[9px] font-semibold uppercase text-amber-600">
+                Humano
+              </span>
+            )}
             {contact?.opted_out_at && (
               <span className="rounded bg-destructive/15 px-1 text-[9px] font-semibold uppercase text-destructive">
                 STOP

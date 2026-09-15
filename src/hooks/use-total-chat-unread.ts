@@ -87,8 +87,11 @@ export function useTotalChatUnread(): number {
         (payload) => {
           const msg = payload.new as ChatMessage;
           if (msg.sender_id === user.id) return;
-          // Só conta se o canal é do caller.
-          if (!unreadMapRef.current.has(msg.channel_id)) return;
+          // DM nova: o canal ainda não estava no mapa na hora do INSERT.
+          if (!unreadMapRef.current.has(msg.channel_id)) {
+            unreadMapRef.current.set(msg.channel_id, 0);
+            lastReadRef.current.set(msg.channel_id, null);
+          }
           const lastRead = lastReadRef.current.get(msg.channel_id);
           const isUnread = !lastRead || new Date(msg.created_at) > new Date(lastRead);
           if (!isUnread) return;
@@ -124,10 +127,13 @@ export function useTotalChatUnread(): number {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          // Caller entrou num novo canal.
+          // Caller entrou num novo canal (DM aberta por outra pessoa).
+          // Não zera se a primeira mensagem já incrementou o contador.
           const m = payload.new as { channel_id: string; last_read_at: string | null };
           lastReadRef.current.set(m.channel_id, m.last_read_at);
-          unreadMapRef.current.set(m.channel_id, 0);
+          if (!unreadMapRef.current.has(m.channel_id)) {
+            unreadMapRef.current.set(m.channel_id, 0);
+          }
           recompute();
         }
       )

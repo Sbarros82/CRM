@@ -438,6 +438,7 @@ async function executeHandoff(
   const cfg = node.config as { assign_to?: string; note?: string };
   const convUpdate: Record<string, unknown> = {
     status: "pending",
+    ai_paused: true,
     updated_at: new Date().toISOString(),
   };
   if (cfg.assign_to) convUpdate.assigned_agent_id = cfg.assign_to;
@@ -1034,7 +1035,11 @@ async function handleReplyForActiveRun(
     if (run.conversation_id) {
       await db
         .from("conversations")
-        .update({ status: "pending", updated_at: new Date().toISOString() })
+        .update({
+          status: "pending",
+          ai_paused: true,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", run.conversation_id);
     }
     await logEvent(db, run.id, "handoff", run.current_node_key, {

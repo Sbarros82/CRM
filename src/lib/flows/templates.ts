@@ -68,16 +68,19 @@ export interface FlowTemplate {
 }
 
 // ============================================================
-// 1. Welcome menu — the example from the owner's brief
+// 1. Welcome menu
 // ============================================================
 const WELCOME_MENU: FlowTemplate = {
   slug: "welcome_menu",
-  name: "Welcome menu",
+  name: "Menu de boas-vindas",
   description:
-    "Greet customers who type a keyword and route them to the right agent based on whether they're new or existing.",
+    "Quem digita uma palavra-chave escolhe se já é cliente ou se é novo, e o atendimento vai para a fila.",
   icon: "MessageSquare",
   trigger_type: "keyword",
-  trigger_config: { keywords: ["support", "help", "hi"], match_type: "contains" },
+  trigger_config: {
+    keywords: ["suporte", "atendimento"],
+    match_type: "contains",
+  },
   entry_node_id: "start",
   nodes: [
     {
@@ -89,17 +92,17 @@ const WELCOME_MENU: FlowTemplate = {
       node_key: "welcome",
       node_type: "send_buttons",
       config: {
-        text: "Hi! 👋 Welcome to support. Are you an existing customer or new here?",
-        footer_text: "Tap a button below to continue.",
+        text: "Olá! 👋 Bem-vindo ao atendimento. Você já é cliente ou está conhecendo agora?",
+        footer_text: "Toque em um botão para continuar.",
         buttons: [
           {
             reply_id: "existing",
-            title: "Existing customer",
+            title: "Já sou cliente",
             next_node_key: "existing_handoff",
           },
           {
             reply_id: "new",
-            title: "New customer",
+            title: "Sou novo",
             next_node_key: "new_handoff",
           },
         ],
@@ -109,31 +112,31 @@ const WELCOME_MENU: FlowTemplate = {
       node_key: "existing_handoff",
       node_type: "handoff",
       config: {
-        note: "Existing customer needs assistance — please check account history before replying.",
+        note: "Cliente atual pediu suporte — conferir o histórico antes de responder.",
       } as HandoffNodeConfig,
     },
     {
       node_key: "new_handoff",
       node_type: "handoff",
       config: {
-        note: "New customer — share pricing + onboarding link.",
+        note: "Cliente novo — apresentar Snap, site/landing e automações.",
       } as HandoffNodeConfig,
     },
   ],
 };
 
 // ============================================================
-// 2. FAQ bot — list-message answers, fully automated
+// 2. FAQ Snap — list-message answers
 // ============================================================
 const FAQ_BOT: FlowTemplate = {
   slug: "faq_bot",
-  name: "FAQ bot",
+  name: "FAQ Snap",
   description:
-    "Answer common questions automatically. Customer picks a topic from a list; the bot replies with the answer and ends.",
+    "Menu em português: horário, planos do Snap, site/landing, automações e consultor. Dispara com menu, faq ou dúvida.",
   icon: "HelpCircle",
   trigger_type: "keyword",
   trigger_config: {
-    keywords: ["faq", "question", "info"],
+    keywords: ["menu", "faq", "dúvida", "duvida", "assuntos"],
     match_type: "contains",
   },
   entry_node_id: "start",
@@ -147,35 +150,44 @@ const FAQ_BOT: FlowTemplate = {
       node_key: "topics",
       node_type: "send_list",
       config: {
-        text: "What can I help you with?",
-        button_label: "View topics",
+        text: "Olá! Escolha um assunto. Se preferir conversar, é só escrever — a equipe ou a IA te atende.",
+        button_label: "Ver assuntos",
         sections: [
           {
-            title: "Common questions",
+            title: "Perguntas frequentes",
             rows: [
               {
                 reply_id: "hours",
-                title: "Opening hours",
+                title: "Horário",
+                description: "Atendimento comercial",
                 next_node_key: "answer_hours",
               },
               {
                 reply_id: "pricing",
-                title: "Pricing",
+                title: "Planos Snap",
+                description: "CRM no WhatsApp",
                 next_node_key: "answer_pricing",
               },
               {
-                reply_id: "refunds",
-                title: "Refund policy",
-                next_node_key: "answer_refunds",
+                reply_id: "landing",
+                title: "Site e landing",
+                description: "Páginas e captura",
+                next_node_key: "answer_landing",
+              },
+              {
+                reply_id: "automations",
+                title: "Automações",
+                description: "Fluxos e integração",
+                next_node_key: "answer_automations",
               },
             ],
           },
           {
-            title: "Other",
+            title: "Atendimento",
             rows: [
               {
                 reply_id: "human",
-                title: "Talk to a human",
+                title: "Falar com consultor",
                 next_node_key: "human_handoff",
               },
             ],
@@ -187,7 +199,7 @@ const FAQ_BOT: FlowTemplate = {
       node_key: "answer_hours",
       node_type: "send_message",
       config: {
-        text: "We're open Mon–Fri, 9am–6pm local time. Weekend support is limited to urgent issues.",
+        text: "Atendimento comercial: segunda a sexta, 9h às 18h (horário de Brasília). Fora disso podemos orientar por aqui e um consultor retoma no próximo horário útil. Digite *menu* para ver os assuntos de novo.",
         next_node_key: "end",
       } as SendMessageNodeConfig,
     },
@@ -195,15 +207,23 @@ const FAQ_BOT: FlowTemplate = {
       node_key: "answer_pricing",
       node_type: "send_message",
       config: {
-        text: "Our pricing starts at $9/mo. Visit https://example.com/pricing for the full breakdown.",
+        text: "Snap CRM (WhatsApp oficial, Cloud API da Meta), por conta:\n• Start R$ 297/mês — 1 número, até 3 usuários\n• Grow R$ 497/mês — até 8 usuários + IA e automações (mais comum)\n• Scale R$ 897/mês — até 15 usuários\nImplantação única R$ 1.990.\nDesconto anual e contrato fecha um consultor. Digite *menu* ou escolha Falar com consultor.",
         next_node_key: "end",
       } as SendMessageNodeConfig,
     },
     {
-      node_key: "answer_refunds",
+      node_key: "answer_landing",
       node_type: "send_message",
       config: {
-        text: "Refunds are honored within 30 days of purchase. Reply with your order number and we'll process it.",
+        text: "Também fazemos landing pages e sites de captura (formulário, WhatsApp, Pixel), sob medida. O valor depende das páginas e do prazo — o consultor monta a proposta. Digite *menu* ou Falar com consultor.",
+        next_node_key: "end",
+      } as SendMessageNodeConfig,
+    },
+    {
+      node_key: "answer_automations",
+      node_type: "send_message",
+      config: {
+        text: "Montamos automações no WhatsApp: fluxos, integração de formulário/CRM e follow-up. Sem preço fixo aqui — o consultor orça conforme o que hoje é manual. Digite *menu* ou Falar com consultor.",
         next_node_key: "end",
       } as SendMessageNodeConfig,
     },
@@ -211,7 +231,7 @@ const FAQ_BOT: FlowTemplate = {
       node_key: "human_handoff",
       node_type: "handoff",
       config: {
-        note: "Customer asked to talk to a human from the FAQ bot.",
+        note: "Pediu consultor pelo menu FAQ Snap.",
       } as HandoffNodeConfig,
     },
     {
@@ -223,13 +243,13 @@ const FAQ_BOT: FlowTemplate = {
 };
 
 // ============================================================
-// 3. Lead capture — collect_input chain, ends in a handoff
+// 3. Lead capture
 // ============================================================
 const LEAD_CAPTURE: FlowTemplate = {
   slug: "lead_capture",
-  name: "Lead capture",
+  name: "Captura de lead",
   description:
-    "Greet first-time inbounds, capture name + email + company, then hand off to sales with the answers in the note.",
+    "Na primeira mensagem pede nome, e-mail e empresa e passa para o comercial com os dados na nota.",
   icon: "UserPlus",
   trigger_type: "first_inbound_message",
   trigger_config: {},
@@ -244,7 +264,7 @@ const LEAD_CAPTURE: FlowTemplate = {
       node_key: "intro",
       node_type: "send_message",
       config: {
-        text: "Welcome! 👋 I'll ask a few quick questions so we can get you to the right person.",
+        text: "Olá! 👋 Vou fazer três perguntas rápidas para te passar à pessoa certa.",
         next_node_key: "ask_name",
       } as SendMessageNodeConfig,
     },
@@ -252,7 +272,7 @@ const LEAD_CAPTURE: FlowTemplate = {
       node_key: "ask_name",
       node_type: "collect_input",
       config: {
-        prompt_text: "What's your name?",
+        prompt_text: "Qual é o seu nome?",
         var_key: "name",
         next_node_key: "ask_email",
       } as CollectInputNodeConfig,
@@ -261,7 +281,7 @@ const LEAD_CAPTURE: FlowTemplate = {
       node_key: "ask_email",
       node_type: "collect_input",
       config: {
-        prompt_text: "Thanks {{vars.name}}! What's your work email?",
+        prompt_text: "Obrigado, {{vars.name}}! Qual é o seu e-mail de trabalho?",
         var_key: "email",
         next_node_key: "ask_company",
       } as CollectInputNodeConfig,
@@ -270,7 +290,7 @@ const LEAD_CAPTURE: FlowTemplate = {
       node_key: "ask_company",
       node_type: "collect_input",
       config: {
-        prompt_text: "Almost done — what's your company name?",
+        prompt_text: "Por último: qual é o nome da empresa?",
         var_key: "company",
         next_node_key: "handoff",
       } as CollectInputNodeConfig,
@@ -279,7 +299,7 @@ const LEAD_CAPTURE: FlowTemplate = {
       node_key: "handoff",
       node_type: "handoff",
       config: {
-        note: "New lead — name={{vars.name}}, email={{vars.email}}, company={{vars.company}}.",
+        note: "Lead novo — nome={{vars.name}}, e-mail={{vars.email}}, empresa={{vars.company}}.",
       } as HandoffNodeConfig,
     },
   ],

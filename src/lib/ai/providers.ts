@@ -1,3 +1,4 @@
+import { extractOpenAiCompatibleText } from "./extract-completion";
 import type { AiProvider } from "./settings";
 
 export interface ChatTurn {
@@ -26,36 +27,58 @@ async function completeOpenAiCompatible(args: CompleteArgs): Promise<string> {
       ? "https://openrouter.ai/api/v1/chat/completions"
       : "https://api.openai.com/v1/chat/completions";
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${args.apiKey}`,
-      "Content-Type": "application/json",
-      ...(args.provider === "openrouter"
-        ? { "HTTP-Referer": "https://snap.local", "X-Title": "Snap CRM" }
-        : {}),
-    },
-    body: JSON.stringify({
-      model: args.model,
-      temperature: 0.4,
-      max_tokens: 400,
-      messages: [
-        { role: "system", content: args.system },
-        ...args.messages,
-      ],
-    }),
-  });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`AI provider ${res.status}: ${body.slice(0, 240)}`);
-  }
-  const json = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${args.apiKey}`,
+    "Content-Type": "application/json",
+    ...(args.provider === "openrouter"
+      ? {
+          "HTTP-Referer":
+            process.env.NEXT_PUBLIC_APP_URL ||
+            (process.env.VERCEL_PROJECT_PRODUCTION_URL
+              ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+              : "https://crm-phi-red-71.vercel.app"),
+          "X-Title": "Snap CRM",
+        }
+      : {}),
   };
-  const text = json.choices?.[0]?.message?.content?.trim();
-  if (!text) throw new Error("AI provider returned an empty reply");
-  return text;
+
+  const payload = {
+    model: args.model,
+    temperature: 0.3,
+    max_tokens: 400,
+    messages: [
+      { role: "system", content: args.system },
+      ...args.messages,
+    ],
+  };
+
+  const bodies: Record<string, unknown>[] =
+    args.provider === "openrouter"
+      ? [
+          { ...payload, reasoning: { enabled: false, effort: "none" } },
+          payload,
+        ]
+      : [payload];
+
+  let lastError = "AI provider returned an empty reply";
+  for (const body of bodies) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      lastError = `AI provider ${res.status}: ${errBody.slice(0, 240)}`;
+      if (res.status === 400 && args.provider === "openrouter") continue;
+      throw new Error(lastError);
+    }
+    const json = (await res.json()) as unknown;
+    const text = extractOpenAiCompatibleText(json);
+    if (text) return text;
+    lastError = "AI provider returned an empty reply";
+  }
+  throw new Error(lastError);
 }
 
 async function completeAnthropic(args: CompleteArgs): Promise<string> {

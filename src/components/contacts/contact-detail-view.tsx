@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ContactAvatarPicker } from '@/components/contacts/contact-avatar-picker';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -317,16 +317,6 @@ export function ContactDetailView({
     setSavingCustom(false);
   }
 
-  function getInitials(name?: string | null) {
-    if (!name) return '?';
-    return name
-      .split(' ')
-      .map((w) => w[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  }
-
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -342,11 +332,14 @@ export function ContactDetailView({
             {/* Header */}
             <SheetHeader className="p-4 border-b border-border/50">
               <div className="flex items-center gap-3">
-                <Avatar className="size-12 bg-muted border border-border">
-                  <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-                    {getInitials(contact.name)}
-                  </AvatarFallback>
-                </Avatar>
+                <ContactAvatarPicker
+                  contact={contact}
+                  className="h-12 w-12 text-sm"
+                  onPatched={(patch) => {
+                    setContact((prev) => (prev ? { ...prev, ...patch } : prev));
+                    onUpdated();
+                  }}
+                />
                 <div className="flex-1 min-w-0">
                   <SheetTitle className="text-popover-foreground truncate">
                     {contact.name || 'Unknown'}

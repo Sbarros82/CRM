@@ -27,7 +27,7 @@ export function useChatChannels() {
   // unread sem re-fetch completo a cada mensagem.
   const lastReadRef = useRef<Map<string, string | null>>(new Map());
 
-  const fetchChannels = useCallback(async () => {
+  const fetchChannels = useCallback(async (opts?: { skipAutoJoin?: boolean }) => {
     if (!user || !accountId) return;
     const supabase = createClient();
 
@@ -114,6 +114,26 @@ export function useChatChannels() {
       (ch) => !memberSet.has(ch.id)
     ) as ChatChannel[];
 
+    // Quem acabou de entrar na conta ainda não está no #geral
+    // (seed do canal foi só na criação). Entra sozinho nos públicos.
+    if (available.length > 0 && !opts?.skipAutoJoin) {
+      let joinedAny = false;
+      for (const ch of available) {
+        const { error: joinError } = await supabase.rpc("join_chat_channel", {
+          p_channel_id: ch.id,
+        });
+        if (joinError) {
+          console.error("[useChatChannels] auto-join:", joinError.message);
+          continue;
+        }
+        joinedAny = true;
+      }
+      if (joinedAny) {
+        await fetchChannels({ skipAutoJoin: true });
+        return;
+      }
+    }
+
     setAvailableChannels(available);
     setLoading(false);
   }, [user, accountId]);
@@ -133,8 +153,14 @@ export function useChatChannels() {
         { event: "INSERT", schema: "public", table: "chat_messages" },
         (payload) => {
           const msg = payload.new as ChatMessage;
-          setChannels((prev) =>
-            prev.map((ch) => {
+          setChannels((prev) => {
+            if (!prev.some((ch) => ch.id === msg.channel_id)) {
+              queueMicrotask(() => {
+                void fetchChannels({ skipAutoJoin: true });
+              });
+              return prev;
+            }
+            return prev.map((ch) => {
               if (ch.id !== msg.channel_id) return ch;
               const lastRead = lastReadRef.current.get(ch.id);
               const isUnread =
@@ -146,8 +172,8 @@ export function useChatChannels() {
                 last_message_at: msg.created_at,
                 unread_count: (ch.unread_count ?? 0) + (isUnread ? 1 : 0),
               };
-            })
-          );
+            });
+          });
         }
       )
       // Subscreve membros para detectar novos canais/DMs.

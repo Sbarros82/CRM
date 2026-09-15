@@ -9,6 +9,7 @@ import { useTotalUnread } from "@/hooks/use-total-unread";
 import { useTotalChatUnread } from "@/hooks/use-total-chat-unread";
 import { createClient } from "@/lib/supabase/client";
 import {
+  BookOpen,
   CalendarDays,
   Crown,
   GitBranch,
@@ -116,6 +117,7 @@ const whatsappNavItems: NavItem[] = [
 ];
 
 const bottomNavItems = [
+  { href: "/guia", label: "Guia", icon: BookOpen },
   { href: "/settings", label: "Configurações", icon: Settings },
 ];
 
@@ -253,7 +255,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                   const showInboxDot =
                     item.href === "/inbox" && totalUnread > 0 && !isActive;
                   const showChatBadge =
-                    item.href === "/chat" && totalChatUnread > 0 && !isActive;
+                    item.href === "/chat" && totalChatUnread > 0;
 
                   return (
                     <li key={item.href}>

@@ -1,8 +1,14 @@
 import { supabaseAdmin } from "@/lib/flows/admin-client";
 import { isAiProvider, type AiProvider } from "./types";
+import {
+  defaultHandoffMeta,
+  splitHandoffMeta,
+  type HandoffMeta,
+} from "./handoff-meta";
 
 export type { AiProvider } from "./types";
 export { isAiProvider } from "./types";
+export type { HandoffMeta } from "./handoff-meta";
 
 export interface AccountAiSettings {
   enabled: boolean;
@@ -11,15 +17,15 @@ export interface AccountAiSettings {
   systemPrompt: string | null;
   followUpHours: number;
   hasApiKey: boolean;
+  handoff: HandoffMeta;
 }
 
 export const DEFAULT_AI_SYSTEM_PROMPT = `Você é o assistente de vendas desta empresa no WhatsApp.
-Responda em português do Brasil, curto e claro (2 a 6 frases).
+Responda SOMENTE a mensagem final para o cliente, em português do Brasil, 2 a 6 frases. Sem raciocínio, sem inglês, sem listas numeradas, sem "thinking process".
+Se o cliente só cumprimentar (oi, olá, boa tarde, boa noite), cumprimente de volta e pergunte como pode ajudar. Nunca faça handoff nisso.
 Qualifique o lead: o que precisa, prazo e orçamento quando fizer sentido.
-Não invente preços, prazos ou políticas. Se não souber, diga que um humano confirma.
-Se o cliente pedir um atendente humano, ou o assunto for reclamação/jurídico/saúde grave, responda só com:
-[[HANDOFF]]
-Nunca invente o marcador [[HANDOFF]] em outras situações.`;
+Não invente preços, prazos, disponibilidade ou políticas. Se não souber, diga que um colega confirma e siga a conversa.
+Responda SOMENTE com a linha [[HANDOFF]] se o cliente pedir explicitamente para falar com uma pessoa, ou se for reclamação grave/jurídico.`;
 
 export async function loadAiSettings(
   accountId: string,
@@ -32,6 +38,8 @@ export async function loadAiSettings(
     .maybeSingle();
   if (error || !account) return null;
 
+  const { prompt, meta } = splitHandoffMeta(account.ai_system_prompt);
+
   const { data: secret } = await db
     .from("account_ai_secrets")
     .select("account_id")
@@ -42,9 +50,10 @@ export async function loadAiSettings(
     enabled: !!account.ai_enabled,
     provider: isAiProvider(account.ai_provider) ? account.ai_provider : "openai",
     model: account.ai_model || "gpt-4o-mini",
-    systemPrompt: account.ai_system_prompt,
+    systemPrompt: prompt || null,
     followUpHours: account.follow_up_hours ?? 24,
     hasApiKey: !!secret,
+    handoff: meta ?? defaultHandoffMeta(),
   };
 }
 

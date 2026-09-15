@@ -598,7 +598,20 @@ export default function ContactsPage() {
                     />
                   </TableCell>
                   <TableCell className="text-foreground font-medium">
-                    {contact.name || <span className="text-muted-foreground italic">Sem nome</span>}
+                    <span className="inline-flex items-center gap-2">
+                      {contact.avatar_url ? (
+                        <img
+                          src={contact.avatar_url}
+                          alt=""
+                          className="size-7 shrink-0 rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-[11px] font-semibold text-muted-foreground">
+                          {(contact.name || contact.phone || "?").charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                      {contact.name || <span className="text-muted-foreground italic">Sem nome</span>}
+                    </span>
                   </TableCell>
                   <TableCell className="text-muted-foreground font-mono text-xs">
                     {contact.phone}

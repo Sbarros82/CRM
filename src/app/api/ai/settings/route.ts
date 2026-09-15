@@ -8,6 +8,12 @@ import {
   isAiProvider,
   loadAiSettings,
 } from "@/lib/ai/settings";
+import {
+  defaultHandoffMeta,
+  isHandoffMode,
+  joinHandoffMeta,
+  parseNotifyPhones,
+} from "@/lib/ai/handoff-meta";
 
 export async function GET() {
   try {
@@ -21,6 +27,7 @@ export async function GET() {
         systemPrompt: DEFAULT_AI_SYSTEM_PROMPT,
         followUpHours: 24,
         hasApiKey: false,
+        handoff: defaultHandoffMeta(),
       },
       defaultPrompt: DEFAULT_AI_SYSTEM_PROMPT,
     });
@@ -46,8 +53,29 @@ export async function PATCH(request: Request) {
     if (typeof body.model === "string" && body.model.trim()) {
       patch.ai_model = body.model.trim().slice(0, 80);
     }
-    if (typeof body.systemPrompt === "string") {
-      patch.ai_system_prompt = body.systemPrompt.slice(0, 4000);
+    const current = await loadAiSettings(ctx.accountId);
+    const promptSource =
+      typeof body.systemPrompt === "string"
+        ? body.systemPrompt
+        : (current?.systemPrompt ?? "");
+    const nextMeta = {
+      phones:
+        typeof body.notifyPhones === "string"
+          ? parseNotifyPhones(body.notifyPhones)
+          : (current?.handoff.phones ?? []),
+      mode: isHandoffMode(body.handoffMode)
+        ? body.handoffMode
+        : (current?.handoff.mode ?? "queue"),
+    };
+    if (
+      typeof body.systemPrompt === "string" ||
+      typeof body.notifyPhones === "string" ||
+      isHandoffMode(body.handoffMode)
+    ) {
+      patch.ai_system_prompt = joinHandoffMeta(
+        promptSource.slice(0, 8000),
+        nextMeta,
+      ).slice(0, 9000);
     }
     if (typeof body.followUpHours === "number") {
       const hours = Math.round(body.followUpHours);

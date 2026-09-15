@@ -50,10 +50,13 @@ export function isValidE164(phone: string): boolean {
  * But some sandboxes register the number with the trunk 0 included,
  * causing sends to the correct international format to fail.
  *
- * This helper yields up to 3 variants:
+ * This helper yields:
  *   1. The original sanitized number (first attempt)
- *   2. With a trunk 0 inserted after the country code
- *   3. With a trunk 0 removed after the country code
+ *   2. Brazil mobile 9th-digit insert/remove after DDD (55 + 2-digit
+ *      area code). Cloud API `wa_id` often omits that 9, while the
+ *      sandbox allow-list and ANATEL form keep it — error #131030.
+ *   3. With a trunk 0 inserted after the country code
+ *   4. With a trunk 0 removed after the country code
  *
  * Country-code lengths of 1, 2, and 3 digits are tried because we
  * don't know the user's country ahead of time.
@@ -71,7 +74,21 @@ export function phoneVariants(sanitized: string): string[] {
   // 1. Original
   push(sanitized)
 
-  // 2. Insert a 0 after each plausible country-code length
+  // 2. Brazil: insert or drop the mobile 9 after DDD.
+  //    558281812000 (inbound wa_id) ↔ 5582981812000 (allow-list).
+  if (sanitized.startsWith('55') && sanitized.length >= 12) {
+    const ddd = sanitized.slice(2, 4)
+    const rest = sanitized.slice(4)
+    if (/^[1-9]\d$/.test(ddd)) {
+      if (rest.length === 8) {
+        push(`55${ddd}9${rest}`)
+      } else if (rest.length === 9 && rest.startsWith('9')) {
+        push(`55${ddd}${rest.slice(1)}`)
+      }
+    }
+  }
+
+  // 3. Insert a 0 after each plausible country-code length
   for (const ccLen of [1, 2, 3]) {
     if (sanitized.length <= ccLen) continue
     const cc = sanitized.slice(0, ccLen)
@@ -81,7 +98,7 @@ export function phoneVariants(sanitized: string): string[] {
     }
   }
 
-  // 3. Remove a leading 0 after each plausible country-code length
+  // 4. Remove a leading 0 after each plausible country-code length
   for (const ccLen of [1, 2, 3]) {
     if (sanitized.length <= ccLen + 1) continue
     const cc = sanitized.slice(0, ccLen)

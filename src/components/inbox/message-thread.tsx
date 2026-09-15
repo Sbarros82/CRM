@@ -34,7 +34,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -135,9 +134,9 @@ function groupMessagesByDate(messages: Message[]) {
 }
 
 const STATUS_OPTIONS: { label: string; value: ConversationStatus; color: string }[] = [
-  { label: "Open", value: "open", color: "text-primary" },
-  { label: "Pending", value: "pending", color: "text-amber-400" },
-  { label: "Closed", value: "closed", color: "text-muted-foreground" },
+  { label: "Aberta", value: "open", color: "text-primary" },
+  { label: "Pendente", value: "pending", color: "text-amber-400" },
+  { label: "Fechada", value: "closed", color: "text-muted-foreground" },
 ];
 
 /**
@@ -809,7 +808,7 @@ export function MessageThread({
   const currentAssignee = profiles.find((p) => p.user_id === assignedAgentId);
   const assignLabel = assignedAgentId
     ? (currentAssignee?.full_name ?? "Assigned")
-    : "Assign";
+    : "Fila";
 
   return (
     // `min-w-0` is load-bearing: the page already puts min-w-0 on the
@@ -837,8 +836,16 @@ export function MessageThread({
               <ArrowLeft className="h-5 w-5" />
             </button>
           )}
-          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-foreground">
-            {displayName.charAt(0).toUpperCase()}
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-sm font-medium text-foreground">
+            {contact.avatar_url ? (
+              <img
+                src={contact.avatar_url}
+                alt={displayName}
+                className="h-9 w-9 object-cover"
+              />
+            ) : (
+              displayName.charAt(0).toUpperCase()
+            )}
           </div>
           <div className="min-w-0">
             <h2 className="truncate text-sm font-semibold text-foreground">{displayName}</h2>
@@ -983,7 +990,18 @@ export function MessageThread({
                   No teammates available
                 </DropdownMenuItem>
               ) : (
-                profiles.map((p) => {
+                <>
+                  <DropdownMenuItem
+                    onClick={() => handleAssignChange(null)}
+                    className={cn(
+                      "text-sm",
+                      !assignedAgentId ? "text-primary" : "text-popover-foreground",
+                    )}
+                  >
+                    Fila da equipe
+                    {!assignedAgentId && <Check className="ml-2 h-3 w-3" />}
+                  </DropdownMenuItem>
+                  {profiles.map((p) => {
                   const isSelected = p.user_id === assignedAgentId;
                   const presence = getPresence(p.user_id);
                   return (
@@ -1011,17 +1029,7 @@ export function MessageThread({
                       {isSelected && <Check className="ml-2 h-3 w-3" />}
                     </DropdownMenuItem>
                   );
-                })
-              )}
-              {assignedAgentId && (
-                <>
-                  <DropdownMenuSeparator className="bg-border" />
-                  <DropdownMenuItem
-                    onClick={() => handleAssignChange(null)}
-                    className="text-sm text-muted-foreground"
-                  >
-                    Unassign
-                  </DropdownMenuItem>
+                })}
                 </>
               )}
             </DropdownMenuContent>

@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { after, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { decrypt, encrypt, isLegacyFormat } from '@/lib/whatsapp/encryption'
 import { getMediaUrl, downloadMedia } from '@/lib/whatsapp/meta-api'
@@ -190,10 +190,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  // Process asynchronously so we can ack Meta within their timeout.
-  processWebhook(body).catch((error) => {
-    console.error('Error processing webhook:', error)
-  })
+  // Ack Meta immediately, but keep the isolate alive so inbound
+  // insert + AI reply can finish after the 200 (Vercel otherwise
+  // freezes nested fetches like OpenRouter).
+  after(() =>
+    processWebhook(body).catch((error) => {
+      console.error('Error processing webhook:', error)
+    }),
+  )
 
   return NextResponse.json({ status: 'received' }, { status: 200 })
 }
@@ -738,12 +742,16 @@ async function processMessage(
   }
 
   if (!flowConsumed) {
-    maybeDispatchAiReply({
-      accountId,
-      conversationId: conversation.id,
-      contactId: contactRecord.id,
-      inboundText,
-    }).catch((err) => console.error('[ai] dispatch failed:', err))
+    try {
+      await maybeDispatchAiReply({
+        accountId,
+        conversationId: conversation.id,
+        contactId: contactRecord.id,
+        inboundText,
+      })
+    } catch (err) {
+      console.error('[ai] dispatch failed:', err)
+    }
   }
 }
 

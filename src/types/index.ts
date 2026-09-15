@@ -102,7 +102,7 @@ export interface Contact {
   name?: string;
   email?: string;
   company?: string;
-  avatar_url?: string;
+  avatar_url?: string | null;
   opted_out_at?: string | null;
   opted_out_keyword?: string | null;
   created_at: string;

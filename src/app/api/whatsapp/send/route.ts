@@ -418,6 +418,7 @@ export async function POST(request: Request) {
         last_message_at: now,
         last_outbound_at: now,
         ai_paused: true,
+        assigned_agent_id: conversation.assigned_agent_id || user.id,
         updated_at: now,
       })
       .eq('id', conversation_id)

@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { ChevronRight, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { BookOpen, ChevronRight, Loader2 } from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -223,6 +224,22 @@ export function SettingsOverview({
 
   return (
     <section className="animate-in fade-in-50 duration-200">
+      <Link
+        href="/guia"
+        className="mb-4 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-colors hover:bg-muted/60"
+      >
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <BookOpen className="h-4 w-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold text-foreground">Guia do Snap</div>
+          <div className="text-xs text-muted-foreground">
+            Rotina do dia, Inbox, funil, WhatsApp e primeira semana
+          </div>
+        </div>
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+      </Link>
+
       {/* Identity */}
       <Card className="flex-row items-center gap-4 px-5 py-5">
         <Avatar size="lg" className="size-14">
