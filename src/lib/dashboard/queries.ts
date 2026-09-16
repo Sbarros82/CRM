@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { getBroadcastStatus } from '@/lib/broadcast-status'
 import {
   daysAgoStart,
   DOW_SHORT_MON_FIRST,
@@ -360,12 +361,12 @@ export async function loadActivity(db: DB, limit = 20): Promise<ActivityItem[]> 
   }>) {
     const label =
       b.status === 'sent'
-        ? `sent to ${b.total_recipients} contacts`
-        : `${b.status} (${b.total_recipients} recipients)`
+        ? `enviada para ${b.total_recipients} contatos`
+        : `${getBroadcastStatus(b.status).label.toLowerCase()} (${b.total_recipients} destinatários)`
     items.push({
       id: `broadcast-${b.id}`,
       kind: 'broadcast',
-      text: `Broadcast "${b.name}" ${label}`,
+      text: `Transmissão "${b.name}" ${label}`,
       at: b.created_at,
       href: '/broadcasts',
     })
