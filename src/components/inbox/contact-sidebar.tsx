@@ -10,26 +10,57 @@ import {
   Mail,
   Copy,
   Check,
-  User,
   Tag as TagIcon,
   DollarSign,
   StickyNote,
   Plus,
   Ban,
+  X,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { ContactAvatarPicker } from "@/components/contacts/contact-avatar-picker";
 import { format } from "date-fns";
 
 interface ContactSidebarProps {
   contact: Contact | null;
   onContactPatch?: (patch: Partial<Contact>) => void;
+  onClose?: () => void;
 }
 
-export function ContactSidebar({ contact, onContactPatch }: ContactSidebarProps) {
+function NoteText({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const long = text.length > 320 || text.split("\n").length > 8;
+
+  return (
+    <div>
+      <p
+        className={cn(
+          "whitespace-pre-wrap break-words text-xs text-muted-foreground",
+          !expanded && long && "line-clamp-6",
+        )}
+      >
+        {text}
+      </p>
+      {long && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-1 text-[11px] font-medium text-primary hover:underline"
+        >
+          {expanded ? "Ver menos" : "Ver mais"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+export function ContactSidebar({
+  contact,
+  onContactPatch,
+  onClose,
+}: ContactSidebarProps) {
   const { accountId } = useAuth();
   const [copied, setCopied] = useState(false);
   const [deals, setDeals] = useState<Deal[]>([]);
@@ -122,8 +153,8 @@ export function ContactSidebar({ contact, onContactPatch }: ContactSidebarProps)
 
   if (!contact) {
     return (
-      <div className="flex h-full w-70 items-center justify-center border-l border-border bg-card">
-        <p className="text-sm text-muted-foreground">Select a conversation</p>
+      <div className="flex h-full w-full min-h-0 items-center justify-center border-l border-border bg-card">
+        <p className="text-sm text-muted-foreground">Selecione uma conversa</p>
       </div>
     );
   }
@@ -131,8 +162,22 @@ export function ContactSidebar({ contact, onContactPatch }: ContactSidebarProps)
   const displayName = contact.name || contact.phone;
 
   return (
-    <div className="flex h-full w-70 flex-col border-l border-border bg-card">
-      <ScrollArea className="flex-1">
+    <div className="flex h-full w-full min-h-0 flex-col overflow-hidden border-l border-border bg-card">
+      {onClose && (
+        <div className="flex shrink-0 items-center justify-between border-b border-border px-3 py-2">
+          <p className="text-xs font-medium text-muted-foreground">Contato</p>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fechar painel do contato"
+            title="Fechar"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div className="p-4">
           {/* Contact Info */}
           <div className="flex flex-col items-center text-center">
@@ -219,11 +264,11 @@ export function ContactSidebar({ contact, onContactPatch }: ContactSidebarProps)
           <div>
             <div className="flex items-center gap-2 px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
               <TagIcon className="h-3 w-3" />
-              Tags
+              Etiquetas
             </div>
             <div className="mt-2 flex flex-wrap gap-1">
               {tags.length === 0 ? (
-                <p className="px-1 text-xs text-muted-foreground">No tags</p>
+                <p className="px-1 text-xs text-muted-foreground">Nenhuma etiqueta</p>
               ) : (
                 tags.map((tag) => (
                   <span
@@ -248,11 +293,11 @@ export function ContactSidebar({ contact, onContactPatch }: ContactSidebarProps)
           <div>
             <div className="flex items-center gap-2 px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
               <DollarSign className="h-3 w-3" />
-              Active Deals
+              Negócios ativos
             </div>
             <div className="mt-2 space-y-2">
               {deals.length === 0 ? (
-                <p className="px-1 text-xs text-muted-foreground">No deals</p>
+                <p className="px-1 text-xs text-muted-foreground">Nenhum negócio</p>
               ) : (
                 deals.map((deal) => (
                   <div
@@ -292,14 +337,14 @@ export function ContactSidebar({ contact, onContactPatch }: ContactSidebarProps)
           <div>
             <div className="flex items-center gap-2 px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
               <StickyNote className="h-3 w-3" />
-              Notes
+              Notas
             </div>
             <div className="mt-2">
               <div className="flex gap-2">
                 <textarea
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
-                  placeholder="Add a note..."
+                  placeholder="Adicionar uma nota..."
                   rows={2}
                   className="flex-1 resize-none rounded-lg border border-border bg-muted px-3 py-2 text-xs text-foreground placeholder-muted-foreground outline-none focus:border-primary/50"
                 />
@@ -319,9 +364,7 @@ export function ContactSidebar({ contact, onContactPatch }: ContactSidebarProps)
                     key={note.id}
                     className="rounded-lg bg-muted px-3 py-2"
                   >
-                    <p className="whitespace-pre-wrap text-xs text-muted-foreground">
-                      {note.note_text}
-                    </p>
+                    <NoteText text={note.note_text} />
                     <p className="mt-1 text-[10px] text-muted-foreground">
                       {format(new Date(note.created_at), "MMM d, yyyy HH:mm")}
                     </p>
@@ -331,7 +374,7 @@ export function ContactSidebar({ contact, onContactPatch }: ContactSidebarProps)
             </div>
           </div>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 }

@@ -876,10 +876,10 @@ export function MessageThread({
               type="button"
               onClick={onToggleContactPanel}
               aria-label={
-                contactPanelOpen ? "Hide contact panel" : "Show contact panel"
+                contactPanelOpen ? "Ocultar painel do contato" : "Mostrar painel do contato"
               }
               aria-pressed={contactPanelOpen}
-              title={contactPanelOpen ? "Hide contact" : "Show contact"}
+              title={contactPanelOpen ? "Ocultar contato" : "Mostrar contato"}
               className={cn(
                 "hidden h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-muted hover:text-foreground lg:inline-flex",
                 contactPanelOpen ? "text-primary" : "text-muted-foreground",

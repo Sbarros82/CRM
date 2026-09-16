@@ -545,7 +545,7 @@ export default function InboxPage() {
   const hasActiveConv = !!activeConversation;
 
   return (
-    <div className="-m-4 flex h-[calc(100vh-3.5rem)] flex-col overflow-hidden sm:-m-6">
+    <div className="-m-4 flex h-[calc(100vh-3.5rem)] min-h-0 flex-col overflow-hidden sm:-m-6">
       {/* WhatsApp connection banner — in the flex column, not absolute,
           so it pushes the panels down instead of overlapping them. */}
       {whatsappConnected === false && (
@@ -557,13 +557,15 @@ export default function InboxPage() {
         </div>
       )}
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
         {/* Left panel: Conversation list.
             Hidden on mobile when a conversation is selected so the
-            thread can occupy the full width. Always visible on lg+. */}
+            thread can occupy the full width. Always visible on lg+.
+            `min-h-0` keeps this column from growing with list content
+            and forcing the whole Inbox to scroll. */}
         <div
           className={cn(
-            "flex h-full flex-1 lg:flex-none",
+            "flex h-full min-h-0 flex-1 lg:flex-none",
             hasActiveConv ? "hidden lg:flex" : "flex",
           )}
         >
@@ -588,7 +590,7 @@ export default function InboxPage() {
             on the right. Issue #165. */}
         <div
           className={cn(
-            "flex h-full min-w-0 flex-1 lg:flex",
+            "flex h-full min-h-0 min-w-0 flex-1 lg:flex",
             hasActiveConv ? "flex" : "hidden lg:flex",
           )}
         >
@@ -621,12 +623,15 @@ export default function InboxPage() {
 
         {/* Right panel: Contact sidebar — desktop only, and only when the
             agent hasn't collapsed it via the thread-header toggle (#258).
-            On mobile it's always hidden (the `lg:block` below), so the
-            toggle — which is itself desktop-only — never affects it. */}
+            Must be a height-constrained flex child (`min-h-0` + `h-full`):
+            a `block` wrapper grows with long notes (FAQ / notas da IA)
+            and stretches the Inbox past the viewport, so the chat is
+            only reachable by zooming out. */}
         {contactPanelOpen && (
-          <div className="hidden lg:block">
+          <div className="hidden h-full min-h-0 w-72 shrink-0 overflow-hidden lg:flex">
             <ContactSidebar
               contact={activeContact}
+              onClose={handleToggleContactPanel}
               onContactPatch={(patch) => {
                 setActiveContact((prev) => (prev ? { ...prev, ...patch } : prev));
                 setConversations((prev) =>
