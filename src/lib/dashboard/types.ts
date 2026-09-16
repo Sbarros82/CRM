@@ -10,6 +10,8 @@ export interface MetricDelta {
 export interface MetricsBundle {
   activeConversations: MetricDelta
   newContactsToday: MetricDelta
+  /** Contacts whose row was created today (subset of "contatos hoje"). */
+  newContactSignupsToday: number
   openDealsValue: number
   openDealsCount: number
   messagesSentToday: MetricDelta

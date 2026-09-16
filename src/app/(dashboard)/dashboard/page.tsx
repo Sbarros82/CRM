@@ -141,22 +141,24 @@ export default function DashboardPage() {
               title="Conversas Ativas"
               value={metrics.activeConversations.current.toLocaleString()}
               icon={MessageSquare}
-              delta={{
-                sign: metrics.activeConversations.previous,
-                label: deltaLabel(metrics.activeConversations.previous, 'novas hoje vs ontem'),
-              }}
+              subtitle="Abertas e pendentes — fechadas não entram"
             />
             <MetricCard
-              title="Novos Contatos Hoje"
+              title="Contatos hoje"
               value={metrics.newContactsToday.current.toLocaleString()}
               icon={UserPlus}
               delta={{
                 sign:
                   metrics.newContactsToday.current - metrics.newContactsToday.previous,
-                label: deltaLabel(
-                  metrics.newContactsToday.current - metrics.newContactsToday.previous,
-                  'vs ontem',
-                ),
+                label: [
+                  deltaLabel(
+                    metrics.newContactsToday.current - metrics.newContactsToday.previous,
+                    'falaram vs ontem',
+                  ),
+                  metrics.newContactSignupsToday > 0
+                    ? ` · ${metrics.newContactSignupsToday} novo${metrics.newContactSignupsToday === 1 ? '' : 's'}`
+                    : '',
+                ].join(''),
               }}
             />
             <MetricCard

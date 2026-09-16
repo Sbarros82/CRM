@@ -27,6 +27,12 @@ import type {
 
 type DB = SupabaseClient
 
+/** Inbox working set: anything a human still needs to see. */
+export const ACTIVE_CONVERSATION_STATUSES = ['open', 'pending'] as const
+
+/** Outbound WhatsApp from a person or the AI. */
+export const OUTBOUND_MESSAGE_SENDERS = ['agent', 'bot'] as const
+
 // --- 1. Metric cards ---------------------------------------------------
 
 export async function loadMetrics(db: DB): Promise<MetricsBundle> {
@@ -34,43 +40,38 @@ export async function loadMetrics(db: DB): Promise<MetricsBundle> {
   const yesterdayStart = daysAgoStart(1).toISOString()
 
   const [
-    openConvCur,
-    newConvToday,
-    newConvYesterday,
+    activeConv,
+    contactsToday,
+    contactsYesterday,
     newContactsToday,
-    newContactsYesterday,
     openDeals,
     messagesToday,
     messagesYesterday,
   ] = await Promise.all([
-    db.from('conversations').select('id', { count: 'exact', head: true }).eq('status', 'open'),
     db
       .from('conversations')
       .select('id', { count: 'exact', head: true })
-      .eq('status', 'open')
-      .gte('created_at', todayStart),
+      .in('status', [...ACTIVE_CONVERSATION_STATUSES]),
     db
       .from('conversations')
       .select('id', { count: 'exact', head: true })
-      .eq('status', 'open')
-      .gte('created_at', yesterdayStart)
-      .lt('created_at', todayStart),
+      .gte('last_inbound_at', todayStart),
+    db
+      .from('conversations')
+      .select('id', { count: 'exact', head: true })
+      .gte('last_inbound_at', yesterdayStart)
+      .lt('last_inbound_at', todayStart),
     db.from('contacts').select('id', { count: 'exact', head: true }).gte('created_at', todayStart),
-    db
-      .from('contacts')
-      .select('id', { count: 'exact', head: true })
-      .gte('created_at', yesterdayStart)
-      .lt('created_at', todayStart),
     db.from('deals').select('value, status').eq('status', 'open'),
     db
       .from('messages')
       .select('id', { count: 'exact', head: true })
-      .eq('sender_type', 'agent')
+      .in('sender_type', [...OUTBOUND_MESSAGE_SENDERS])
       .gte('created_at', todayStart),
     db
       .from('messages')
       .select('id', { count: 'exact', head: true })
-      .eq('sender_type', 'agent')
+      .in('sender_type', [...OUTBOUND_MESSAGE_SENDERS])
       .gte('created_at', yesterdayStart)
       .lt('created_at', todayStart),
   ])
@@ -80,16 +81,14 @@ export async function loadMetrics(db: DB): Promise<MetricsBundle> {
 
   return {
     activeConversations: {
-      current: openConvCur.count ?? 0,
-      // "vs yesterday" on a current-state count has no clean answer
-      // without snapshots — we show the delta in NEW open conversations
-      // today vs yesterday. That's the business-meaningful daily signal.
-      previous: (newConvToday.count ?? 0) - (newConvYesterday.count ?? 0),
+      current: activeConv.count ?? 0,
+      previous: 0,
     },
     newContactsToday: {
-      current: newContactsToday.count ?? 0,
-      previous: newContactsYesterday.count ?? 0,
+      current: contactsToday.count ?? 0,
+      previous: contactsYesterday.count ?? 0,
     },
+    newContactSignupsToday: newContactsToday.count ?? 0,
     openDealsValue,
     openDealsCount: openDealsRows.length,
     messagesSentToday: {
