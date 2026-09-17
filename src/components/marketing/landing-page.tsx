@@ -3,7 +3,7 @@
 import { FormEvent, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import WaveArcs from "@/components/originkit/wave-arcs";
+import HeroAurora from "@/components/marketing/hero-aurora";
 import { Reveal } from "@/components/marketing/reveal";
 import {
   AiHandoffMock,
@@ -132,14 +132,8 @@ export function LandingPage({
       </header>
 
       <section id="topo" className="relative overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 opacity-80">
-          <WaveArcs
-            backgroundColor="#0C0C0A"
-            lineColor="#FFDD00"
-            glow={12}
-            speed={4}
-            lineCount={64}
-          />
+        <div className="pointer-events-none absolute inset-0">
+          <HeroAurora />
         </div>
         <div className="relative z-10 mx-auto max-w-6xl px-4 pb-10 pt-16 sm:px-6 sm:pt-24">
           <motion.p
@@ -153,7 +147,7 @@ export function LandingPage({
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.08 }}
-            className="mx-auto mt-4 max-w-3xl text-center text-4xl font-semibold tracking-tight text-white sm:text-6xl sm:leading-[1.05]"
+            className="mx-auto mt-4 max-w-3xl text-center text-4xl font-semibold tracking-tight text-white [text-shadow:0_2px_28px_rgba(12,12,10,0.85)] sm:text-6xl sm:leading-[1.05]"
           >
             {isFlow
               ? "O fluxo atende. O consultor fecha."
@@ -163,7 +157,7 @@ export function LandingPage({
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.16 }}
-            className="mx-auto mt-5 max-w-2xl text-center text-base leading-relaxed text-zinc-400 sm:text-lg"
+            className="mx-auto mt-5 max-w-2xl text-center text-base leading-relaxed text-zinc-300 sm:text-lg"
           >
             Painel com conversas ativas e radar. Funil com etapas de verdade.
             Fluxo com lista, FAQ e handoff. A IA não inventa preço e não

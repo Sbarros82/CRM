@@ -368,3 +368,49 @@ html[data-theme="rose"] {
   stroke: #00c571;
   stroke-width: 2;
 }
+
+@keyframes hero-orb-drift {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(5%, -8%);
+  }
+}
+
+.hero-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(90px);
+  pointer-events: none;
+}
+
+.hero-orb-a {
+  left: -14%;
+  bottom: -22%;
+  width: min(52vw, 520px);
+  height: min(52vw, 520px);
+  background: #ffdd00;
+  opacity: 0.22;
+  animation: hero-orb-drift 22s ease-in-out infinite alternate;
+}
+
+.hero-orb-b {
+  right: -12%;
+  top: -8%;
+  width: min(36vw, 380px);
+  height: min(36vw, 380px);
+  background: #ffdd00;
+  opacity: 0.1;
+  animation: hero-orb-drift 28s ease-in-out infinite alternate-reverse;
+}
+
+.hero-orb-c {
+  left: 50%;
+  bottom: 4%;
+  width: min(70vw, 720px);
+  height: min(18vw, 180px);
+  background: #ffdd00;
+  opacity: 0.12;
+  transform: translateX(-50%);
+}
