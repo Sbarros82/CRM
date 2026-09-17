@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { LandingPage } from "@/components/marketing/landing-page";
 
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: "Snap — CRM no WhatsApp para o seu time",
   description:
