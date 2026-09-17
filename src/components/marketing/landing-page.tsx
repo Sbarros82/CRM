@@ -112,7 +112,53 @@ function BroadcastMock() {
   );
 }
 
-function AiHandoffMock() {
+function FlowGraphMock() {
+  const card =
+    "rounded-xl border border-white/10 bg-[#1A1A1A] px-3 py-2.5 text-left shadow-sm";
+  return (
+    <div className="relative overflow-hidden bg-[#141410] px-4 py-8 sm:px-8">
+      <div className="mx-auto flex max-w-3xl flex-col items-center gap-6 md:flex-row md:items-start md:justify-between">
+        <div className={`${card} w-full max-w-[140px] md:mt-16`}>
+          <p className="text-[9px] font-semibold uppercase tracking-wider text-emerald-400">
+            Start
+          </p>
+          <p className="mt-1 text-xs text-white">Entrada</p>
+        </div>
+        <div className={`${card} w-full max-w-[200px]`}>
+          <p className="text-[9px] font-semibold uppercase tracking-wider text-violet-300">
+            Send list
+          </p>
+          <p className="mt-1 text-xs font-medium text-white">FAQ Snap</p>
+          <ul className="mt-2 space-y-1 text-[10px] text-zinc-400">
+            <li>Horário</li>
+            <li>Planos Snap</li>
+            <li>Site e landing</li>
+            <li>Automações</li>
+            <li>Falar com consultor</li>
+          </ul>
+        </div>
+        <div className="flex w-full max-w-[220px] flex-col gap-2">
+          <div className={card}>
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-violet-300">
+              Send message
+            </p>
+            <p className="mt-1 text-[11px] text-zinc-300">
+              Horário comercial em Brasília…
+            </p>
+          </div>
+          <div className={card}>
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-rose-300">
+              Handoff
+            </p>
+            <p className="mt-1 text-[11px] text-zinc-300">
+              Pediu consultor — vai para o Inbox.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
   return (
     <div className="p-4">
       <LiveChat
@@ -145,7 +191,12 @@ function whatsappDemoUrl(email?: string) {
   return `https://wa.me/${SALES_WHATSAPP}?text=${encodeURIComponent(text)}`;
 }
 
-export function LandingPage() {
+export function LandingPage({
+  product = "snap",
+}: {
+  product?: "snap" | "snapflow";
+}) {
+  const isFlow = product === "snapflow";
   const [tab, setTab] = useState<ShowcaseId>("inbox");
   const [email, setEmail] = useState("");
   const active = SHOWCASES.find((s) => s.id === tab) ?? SHOWCASES[0];
@@ -166,7 +217,7 @@ export function LandingPage() {
               className="h-8 w-8 rounded-md object-contain"
             />
             <span className="text-sm font-semibold tracking-tight text-white">
-              Snap
+              {isFlow ? "Snap Flow" : "Snap"}
             </span>
           </a>
           <nav className="hidden items-center gap-6 text-sm text-zinc-400 md:flex">
@@ -211,14 +262,17 @@ export function LandingPage() {
         </div>
         <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-16 sm:px-6 sm:pt-24">
           <p className="text-center text-xs font-medium uppercase tracking-[0.2em] text-[#FFDD00]">
-            CRM no WhatsApp
+            {isFlow ? "Menus e FAQ no WhatsApp" : "CRM no WhatsApp"}
           </p>
           <h1 className="mx-auto mt-4 max-w-3xl text-center text-4xl font-semibold tracking-tight text-white sm:text-6xl sm:leading-[1.05]">
-            O atendimento da equipe, no mesmo lugar.
+            {isFlow
+              ? "O fluxo atende. O consultor fecha."
+              : "O atendimento da equipe, no mesmo lugar."}
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-center text-base leading-relaxed text-zinc-400 sm:text-lg">
-            Inbox compartilhado, funil, transmissões e uma IA que tria. O
-            fechamento fica com o consultor — não com o bot.
+            {isFlow
+              ? "Botões, listas e handoff para o time. A IA e o menu triam — preço e venda ficam com gente."
+              : "Inbox compartilhado, funil, transmissões e uma IA que tria. O fechamento fica com o consultor — não com o bot."}
           </p>
 
           <form
@@ -258,9 +312,12 @@ export function LandingPage() {
               <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
               <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
               <span className="ml-2 text-[11px] text-white/50">
-                Snap · Inbox
+                {isFlow ? "Snap Flow · FAQ" : "Snap · Inbox"}
               </span>
             </div>
+            {isFlow ? (
+              <FlowGraphMock />
+            ) : (
             <div className="grid min-h-[340px] md:grid-cols-[200px_1fr]">
               <div className="hidden border-r border-white/10 p-3 md:block">
                 {["Maria Gatinha", "Hotel Recife", "Grupo B2B"].map(
@@ -285,13 +342,16 @@ export function LandingPage() {
                 <LiveChat {...chatTheme} />
               </div>
             </div>
+            )}
           </div>
+          {!isFlow && (
           <div className="pointer-events-none absolute -bottom-8 -right-2 hidden w-56 overflow-hidden rounded-xl border border-white/10 bg-[#1A1A1A] shadow-xl sm:block md:-right-6">
             <p className="border-b border-white/10 px-3 py-2 text-[10px] font-medium uppercase tracking-wider text-[#FFDD00]">
               Funil
             </p>
             <PipelineMock />
           </div>
+          )}
         </div>
       </section>
 
@@ -500,7 +560,7 @@ export function LandingPage() {
 
       <footer className="border-t border-white/10 py-8">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 text-xs text-zinc-500 sm:flex-row sm:px-6">
-          <span>Snap · CRM no WhatsApp</span>
+          <span>{isFlow ? "Snap Flow" : "Snap · CRM no WhatsApp"}</span>
           <span>Prints e GIFs do produto entram nesta tela depois.</span>
         </div>
       </footer>
