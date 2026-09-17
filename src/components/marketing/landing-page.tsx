@@ -252,7 +252,7 @@ export function LandingPage({
             <ul className="mt-5 space-y-2 text-sm text-zinc-300">
               {[
                 "Atalhos: novo contato, negócio, transmissão, automação",
-                "Gráfico de recebidas × enviadas na semana",
+                "Barras de recebidas × enviadas na semana",
                 "Donut do pipeline por etapa",
               ].map((t) => (
                 <li key={t} className="flex gap-2">

@@ -11,6 +11,16 @@ const chatTheme = {
   receivedTextColor: "#F4F4EC",
 } as const;
 
+const CHART_DAYS = [
+  { d: "Seg", in: 18, out: 10 },
+  { d: "Ter", in: 24, out: 14 },
+  { d: "Qua", in: 16, out: 12 },
+  { d: "Qui", in: 32, out: 20 },
+  { d: "Sex", in: 28, out: 22 },
+  { d: "Sáb", in: 12, out: 6 },
+  { d: "Dom", in: 8, out: 4 },
+] as const;
+
 export function DashboardMock() {
   const kpis = [
     { label: "Conversas ativas", value: "2", hint: "Abertas e pendentes" },
@@ -18,6 +28,8 @@ export function DashboardMock() {
     { label: "Negócios abertos", value: "1", hint: "No funil agora" },
     { label: "Msgs enviadas", value: "—", hint: "Time + IA" },
   ];
+  const maxBar = Math.max(...CHART_DAYS.flatMap((x) => [x.in, x.out]));
+
   return (
     <div className="bg-[#f6f4ef] p-4 text-zinc-800">
       <motion.div
@@ -62,31 +74,54 @@ export function DashboardMock() {
         )}
       </div>
       <div className="mt-3 rounded-xl border border-zinc-200/80 bg-white p-3">
-        <p className="text-[10px] font-medium text-zinc-500">
-          Conversas ao longo do tempo
-        </p>
-        <svg viewBox="0 0 320 80" className="mt-2 h-20 w-full">
-          <motion.polyline
-            fill="none"
-            stroke="#67885d"
-            strokeWidth="2"
-            points="0,70 40,68 80,66 120,64 160,50 200,22 240,30 280,48 320,70"
-            initial={{ pathLength: 0 }}
-            whileInView={{ pathLength: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 1.4, ease: "easeInOut" }}
-          />
-          <motion.polyline
-            fill="none"
-            stroke="#7c6cf0"
-            strokeWidth="2"
-            points="0,72 40,70 80,69 120,67 160,55 200,28 240,38 280,52 320,72"
-            initial={{ pathLength: 0 }}
-            whileInView={{ pathLength: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 1.4, delay: 0.15, ease: "easeInOut" }}
-          />
-        </svg>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[10px] font-medium text-zinc-500">
+            Mensagens na semana
+          </p>
+          <div className="flex gap-3 text-[10px] text-zinc-500">
+            <span className="inline-flex items-center gap-1">
+              <span className="h-2 w-2 rounded-sm bg-[#67885d]" />
+              Recebidas
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="h-2 w-2 rounded-sm bg-[#7c6cf0]" />
+              Enviadas
+            </span>
+          </div>
+        </div>
+        <div className="mt-3 flex h-28 items-end gap-2 sm:gap-3">
+          {CHART_DAYS.map((day, i) => (
+            <div key={day.d} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+              <div className="flex h-24 w-full items-end justify-center gap-0.5 sm:gap-1">
+                <motion.div
+                  className="w-[42%] max-w-[18px] origin-bottom rounded-t-sm bg-[#67885d]"
+                  style={{ height: `${(day.in / maxBar) * 100}%` }}
+                  initial={{ scaleY: 0 }}
+                  whileInView={{ scaleY: 1 }}
+                  viewport={{ once: true, amount: 0.6 }}
+                  transition={{
+                    delay: 0.12 * i,
+                    duration: 0.7,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                />
+                <motion.div
+                  className="w-[42%] max-w-[18px] origin-bottom rounded-t-sm bg-[#7c6cf0]"
+                  style={{ height: `${(day.out / maxBar) * 100}%` }}
+                  initial={{ scaleY: 0 }}
+                  whileInView={{ scaleY: 1 }}
+                  viewport={{ once: true, amount: 0.6 }}
+                  transition={{
+                    delay: 0.12 * i + 0.08,
+                    duration: 0.7,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                />
+              </div>
+              <span className="text-[9px] text-zinc-400">{day.d}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
