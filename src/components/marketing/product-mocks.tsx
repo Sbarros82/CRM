@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { LayoutGroup, motion, useInView } from "framer-motion";
 import LiveChat from "@/components/originkit/live-chat";
 
@@ -211,109 +211,173 @@ export function FunilBoardMock() {
   );
 }
 
-function bezierH(x1: number, y1: number, x2: number, y2: number) {
-  const mid = (x1 + x2) / 2;
-  return `M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`;
+type Port = { x: number; y: number };
+
+function bezierDock(a: Port, b: Port) {
+  const dx = Math.max(36, Math.abs(b.x - a.x) * 0.42);
+  return `M ${a.x} ${a.y} C ${a.x + dx} ${a.y}, ${b.x - dx} ${b.y}, ${b.x} ${b.y}`;
+}
+
+function portCenter(wrap: DOMRect, el: HTMLElement | null): Port | null {
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  return {
+    x: r.left - wrap.left + r.width / 2,
+    y: r.top - wrap.top + r.height / 2,
+  };
 }
 
 const FAQ_TARGETS = [
-  { kind: "Send message", text: "Atendimento: seg a sex, 9h–18h", y: 18 },
-  { kind: "Send message", text: "Planos — consultor fecha o valor", y: 96 },
-  { kind: "Send message", text: "Landing e site de captura", y: 174 },
-  { kind: "Send message", text: "Automações e handoff no CRM", y: 252 },
-  { kind: "Handoff", text: "Pediu consultor → Inbox", y: 330 },
+  { kind: "Send message", text: "Atendimento: seg a sex, 9h–18h" },
+  { kind: "Send message", text: "Planos — consultor fecha o valor" },
+  { kind: "Send message", text: "Landing e site de captura" },
+  { kind: "Send message", text: "Automações e handoff no CRM" },
+  { kind: "Handoff", text: "Pediu consultor → Inbox" },
 ] as const;
+
+const FAQ_ITEMS = [
+  "Horário",
+  "Planos Snap",
+  "Site e landing",
+  "Automações",
+  "Falar com consultor",
+] as const;
+
+function FlowPort({
+  side,
+  portRef,
+}: {
+  side: "left" | "right";
+  portRef: (el: HTMLSpanElement | null) => void;
+}) {
+  return (
+    <span
+      ref={portRef}
+      className="absolute top-1/2 z-[2] h-2.5 w-2.5 rounded-full border-2 border-[#00c571] bg-white"
+      style={{
+        left: side === "left" ? 0 : "auto",
+        right: side === "right" ? 0 : "auto",
+        transform:
+          side === "right" ? "translate(50%, -50%)" : "translate(-50%, -50%)",
+      }}
+    />
+  );
+}
 
 export function FlowCanvasMock() {
   const rootRef = useRef<HTMLDivElement>(null);
-  const running = useInView(rootRef, { once: true, amount: 0.4 });
+  const running = useInView(rootRef, { once: true, amount: 0.35 });
   const glowId = useId().replace(/:/g, "");
+  const startOutRef = useRef<HTMLSpanElement>(null);
+  const listInRef = useRef<HTMLSpanElement>(null);
+  const listOutRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const rightInRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const [paths, setPaths] = useState<string[]>([]);
 
-  const start = { x: 28, y: 176, w: 120, h: 68 };
-  const list = { x: 214, y: 118, w: 188, h: 186 };
-  const rightX = 548;
-  const rightW = 228;
-  const rightH = 64;
+  useLayoutEffect(() => {
+    const wrap = rootRef.current;
+    if (!wrap) return;
 
-  const startOut = { x: start.x + start.w, y: start.y + start.h / 2 };
-  const listIn = { x: list.x, y: list.y + list.h / 2 };
-  const listOutX = list.x + list.w;
-  const listHandleYs = [152, 178, 204, 230, 256];
+    const measure = () => {
+      const box = wrap.getBoundingClientRect();
+      const trunkFrom = portCenter(box, startOutRef.current);
+      const trunkTo = portCenter(box, listInRef.current);
+      const next: string[] = [];
+      if (trunkFrom && trunkTo) next.push(bezierDock(trunkFrom, trunkTo));
+      FAQ_TARGETS.forEach((_, i) => {
+        const from = portCenter(box, listOutRefs.current[i] ?? null);
+        const to = portCenter(box, rightInRefs.current[i] ?? null);
+        if (from && to) next.push(bezierDock(from, to));
+      });
+      setPaths(next);
+    };
 
-  const trunk = bezierH(startOut.x, startOut.y, listIn.x, listIn.y);
-  const branches = FAQ_TARGETS.map((card, i) =>
-    bezierH(listOutX, listHandleYs[i], rightX, card.y + rightH / 2),
-  );
+    measure();
+    const raf = requestAnimationFrame(measure);
+    const ro = new ResizeObserver(measure);
+    ro.observe(wrap);
+    window.addEventListener("resize", measure);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [running]);
+
+  const trunk = paths[0];
+  const branches = paths.slice(1);
 
   return (
     <div
       ref={rootRef}
-      className={`overflow-hidden bg-[#f6f4ef] ${running ? "n8n-running" : ""}`}
+      className={`relative overflow-hidden bg-[#f6f4ef] ${running ? "n8n-running" : ""}`}
     >
-      <div className="relative aspect-[800/420] w-full min-h-[280px]">
-        <svg
-          className="pointer-events-none absolute inset-0 h-full w-full"
-          viewBox="0 0 800 420"
-          preserveAspectRatio="xMidYMid meet"
-          aria-hidden
-        >
-          <defs>
-            <filter id={glowId} x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="2.4" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-          <path className="n8n-edge-idle" d={trunk} />
-          {branches.map((d) => (
-            <path key={d} className="n8n-edge-idle" d={d} />
-          ))}
-          <path
-            className="n8n-edge-paint"
-            d={trunk}
-            pathLength={1}
-            style={{ ["--n8n-delay" as string]: "0.35s" }}
-          />
-          <path
-            className="n8n-edge-packet"
-            d={trunk}
-            style={{
-              ["--n8n-delay" as string]: "0.35s",
-              filter: `url(#${glowId})`,
-            }}
-          />
-          {branches.map((d, i) => (
-            <g key={`run-${i}`}>
-              <path
-                className="n8n-edge-paint"
-                d={d}
-                pathLength={1}
-                style={{ ["--n8n-delay" as string]: `${0.95 + i * 0.18}s` }}
-              />
-              <path
-                className="n8n-edge-packet"
-                d={d}
-                style={{
-                  ["--n8n-delay" as string]: `${0.95 + i * 0.18}s`,
-                  filter: `url(#${glowId})`,
-                }}
-              />
-            </g>
-          ))}
-        </svg>
+      <svg
+        className="pointer-events-none absolute inset-0 h-full w-full"
+        aria-hidden
+      >
+        <defs>
+          <filter id={glowId} x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="2.2" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        {paths.map((d) => (
+          <path key={`idle-${d}`} className="n8n-edge-idle" d={d} />
+        ))}
+        {trunk ? (
+          <>
+            <path
+              className="n8n-edge-paint"
+              d={trunk}
+              pathLength={1}
+              style={{ ["--n8n-delay" as string]: "0.35s" }}
+            />
+            <path
+              className="n8n-edge-packet"
+              d={trunk}
+              style={{
+                ["--n8n-delay" as string]: "0.35s",
+                filter: `url(#${glowId})`,
+              }}
+            />
+          </>
+        ) : null}
+        {branches.map((d, i) => (
+          <g key={`run-${i}`}>
+            <path
+              className="n8n-edge-paint"
+              d={d}
+              pathLength={1}
+              style={{ ["--n8n-delay" as string]: `${0.95 + i * 0.18}s` }}
+            />
+            <path
+              className="n8n-edge-packet"
+              d={d}
+              style={{
+                ["--n8n-delay" as string]: `${0.95 + i * 0.18}s`,
+                filter: `url(#${glowId})`,
+              }}
+            />
+          </g>
+        ))}
+      </svg>
 
+      <div className="relative z-[1] grid grid-cols-[minmax(7.5rem,0.85fr)_minmax(10rem,1fr)_minmax(12rem,1.4fr)] items-stretch gap-8 px-6 py-8 sm:gap-12 sm:px-10 sm:py-10">
         <article
-          className="n8n-node absolute rounded-xl border border-zinc-200 bg-white p-3"
-          style={{
-            left: `${(start.x / 800) * 100}%`,
-            top: `${(start.y / 420) * 100}%`,
-            width: `${(start.w / 800) * 100}%`,
-            ["--n8n-delay" as string]: "0s",
-          }}
+          className="n8n-node relative self-center rounded-xl border border-zinc-200 bg-white p-3"
+          style={{ ["--n8n-delay" as string]: "0s" }}
         >
           <span className="n8n-status absolute right-2 top-2 h-2 w-2 rounded-full bg-[#00c571]" />
+          <FlowPort
+            side="right"
+            portRef={(el) => {
+              startOutRef.current = el;
+            }}
+          />
           <p className="n8n-kind text-[9px] font-semibold uppercase tracking-wider text-zinc-400">
             Start
           </p>
@@ -321,49 +385,61 @@ export function FlowCanvasMock() {
         </article>
 
         <article
-          className="n8n-node absolute rounded-xl border border-zinc-200 bg-white p-3"
-          style={{
-            left: `${(list.x / 800) * 100}%`,
-            top: `${(list.y / 420) * 100}%`,
-            width: `${(list.w / 800) * 100}%`,
-            ["--n8n-delay" as string]: "0.7s",
-          }}
+          className="n8n-node relative flex flex-col rounded-xl border border-zinc-200 bg-white p-3"
+          style={{ ["--n8n-delay" as string]: "0.7s" }}
         >
           <span className="n8n-status absolute right-2 top-2 h-2 w-2 rounded-full bg-[#00c571]" />
+          <FlowPort
+            side="left"
+            portRef={(el) => {
+              listInRef.current = el;
+            }}
+          />
           <p className="n8n-kind text-[9px] font-semibold uppercase tracking-wider text-zinc-400">
             Send list
           </p>
           <p className="mt-1 text-xs font-medium text-zinc-800">FAQ Snap</p>
-          <ul className="mt-2 space-y-1 text-[10px] text-zinc-500">
-            <li>Horário</li>
-            <li>Planos Snap</li>
-            <li>Site e landing</li>
-            <li>Automações</li>
-            <li>Falar com consultor</li>
+          <ul className="mt-2 flex flex-1 flex-col justify-evenly">
+            {FAQ_ITEMS.map((item, i) => (
+              <li
+                key={item}
+                className="relative py-1.5 pr-2 text-[10px] text-zinc-500"
+              >
+                {item}
+                <FlowPort
+                  side="right"
+                  portRef={(el) => {
+                    listOutRefs.current[i] = el;
+                  }}
+                />
+              </li>
+            ))}
           </ul>
         </article>
 
-        {FAQ_TARGETS.map((card, i) => (
-          <article
-            key={card.text}
-            className="n8n-node absolute rounded-xl border border-zinc-200 bg-white p-3"
-            style={{
-              left: `${(rightX / 800) * 100}%`,
-              top: `${(card.y / 420) * 100}%`,
-              width: `${(rightW / 800) * 100}%`,
-              height: `${(rightH / 420) * 100}%`,
-              ["--n8n-delay" as string]: `${1.15 + i * 0.18}s`,
-            }}
-          >
-            <span className="n8n-status absolute right-2 top-2 h-2 w-2 rounded-full bg-[#00c571]" />
-            <p className="n8n-kind text-[9px] font-semibold uppercase tracking-wider text-zinc-400">
-              {card.kind}
-            </p>
-            <p className="mt-1 text-[11px] leading-snug text-zinc-600">
-              {card.text}
-            </p>
-          </article>
-        ))}
+        <div className="flex flex-col gap-2.5">
+          {FAQ_TARGETS.map((card, i) => (
+            <article
+              key={card.text}
+              className="n8n-node relative rounded-xl border border-zinc-200 bg-white px-3 py-2.5"
+              style={{ ["--n8n-delay" as string]: `${1.15 + i * 0.18}s` }}
+            >
+              <span className="n8n-status absolute right-2 top-2 h-2 w-2 rounded-full bg-[#00c571]" />
+              <FlowPort
+                side="left"
+                portRef={(el) => {
+                  rightInRefs.current[i] = el;
+                }}
+              />
+              <p className="n8n-kind text-[9px] font-semibold uppercase tracking-wider text-zinc-400">
+                {card.kind}
+              </p>
+              <p className="mt-0.5 text-[11px] leading-snug text-zinc-600">
+                {card.text}
+              </p>
+            </article>
+          ))}
+        </div>
       </div>
     </div>
   );
