@@ -99,6 +99,8 @@ interface NodeData extends Record<string, unknown> {
   /** Validator's "look here" pulse — flashes the card border for
    *  ~1.6s. Drives a CSS animation, doesn't change layout. */
   isFlashed: boolean;
+  /** Pop-in when the node was just added on the canvas. */
+  isAppearing: boolean;
 }
 
 const NODE_WIDTH = 240;
@@ -128,7 +130,7 @@ function slotColor(nodeType: NodeType, slotId: string, fallback: string) {
 }
 
 function FlowNodeCard({ data, selected }: NodeProps) {
-  const { node, isEntry, isFlashed } = data as NodeData;
+  const { node, isEntry, isFlashed, isAppearing } = data as NodeData;
   const meta = NODE_META[node.node_type];
   const c = nodeColors(node.node_type);
   const summary = summarizeNode(node);
@@ -166,6 +168,7 @@ function FlowNodeCard({ data, selected }: NodeProps) {
         // built-in `animate-pulse` is too gentle; a ring with the
         // amber accent matches the list view's flash semantics.
         isFlashed && "!border-amber-400 ring-2 ring-amber-400/60",
+        isAppearing && "flow-node-appear",
       )}
     >
       {hasTarget && (
@@ -282,6 +285,38 @@ function FlowCanvasInner() {
   // Side-panel state — which node's form is open. Canvas-only UI; the
   // list view's analogue is the per-card expanded set in
   // flow-builder.tsx.
+  const [appearingKeys, setAppearingKeys] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const knownNodeKeysRef = useRef<Set<string> | null>(null);
+
+  useEffect(() => {
+    const next = new Set(builderNodes.map((n) => n.node_key));
+    if (knownNodeKeysRef.current === null) {
+      knownNodeKeysRef.current = next;
+      return;
+    }
+    const added: string[] = [];
+    for (const key of next) {
+      if (!knownNodeKeysRef.current.has(key)) added.push(key);
+    }
+    knownNodeKeysRef.current = next;
+    if (added.length === 0) return;
+    setAppearingKeys((prev) => {
+      const merged = new Set(prev);
+      for (const key of added) merged.add(key);
+      return merged;
+    });
+    const t = window.setTimeout(() => {
+      setAppearingKeys((prev) => {
+        const nextSet = new Set(prev);
+        for (const key of added) nextSet.delete(key);
+        return nextSet;
+      });
+    }, 520);
+    return () => window.clearTimeout(t);
+  }, [builderNodes]);
+
   const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
   const selectedNode = useMemo(
     () =>
@@ -336,12 +371,13 @@ function FlowCanvasInner() {
           node: n,
           isEntry: n.node_key === entryNodeId,
           isFlashed: n.node_key === flashKey,
+          isAppearing: appearingKeys.has(n.node_key),
         },
       };
     });
 
     return nodes;
-  }, [builderNodes, entryNodeId, flashKey, autoLayoutPositions]);
+  }, [builderNodes, entryNodeId, flashKey, autoLayoutPositions, appearingKeys]);
 
   const [rfNodes, setRfNodes] = useState<RfNode<NodeData>[]>(derivedRfNodes);
 
@@ -367,6 +403,8 @@ function FlowCanvasInner() {
       labelBgPadding: [4, 2] as [number, number],
       labelBgBorderRadius: 4,
       style: { stroke: "var(--border)", strokeWidth: 1.5 },
+      type: "smoothstep",
+      animated: true,
     }));
 
     return rfEdges;

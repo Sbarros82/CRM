@@ -24,10 +24,6 @@ export const metadata: Metadata = {
     template: "%s — Snap",
   },
   description: "Conectando sua Equipe",
-  robots: {
-    index: false,
-    follow: false,
-  },
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
