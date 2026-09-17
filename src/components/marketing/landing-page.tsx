@@ -196,7 +196,10 @@ export function LandingPage({
         </div>
       </section>
 
-      <section className="relative mx-auto max-w-6xl px-4 pb-16 sm:px-6">
+      <section
+        id={isFlow ? "fluxos" : undefined}
+        className="relative mx-auto max-w-6xl px-4 pb-16 sm:px-6"
+      >
         <Reveal>
           <Frame title={isFlow ? "Snap Flow · FAQ" : "Snap · Painel"}>
             {isFlow ? <FlowCanvasMock /> : <DashboardMock />}
@@ -290,28 +293,33 @@ export function LandingPage({
         </div>
       </section>
 
-      <section id="fluxos" className="border-t border-white/10 bg-[#141412] py-16">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <Reveal>
-            <p className="text-xs font-medium uppercase tracking-[0.2em] text-[#FFDD00]">
-              Snap Flow
-            </p>
-            <h2 className="mt-2 max-w-2xl text-3xl font-semibold tracking-tight text-white">
-              Start → lista → resposta → humano.
-            </h2>
-            <p className="mt-3 max-w-2xl text-zinc-400">
-              O FAQ Snap que vocês já usam: horário, o que o produto faz,
-              landing, automações. “Falar com consultor” dispara handoff e
-              pausa o bot naquela conversa.
-            </p>
-          </Reveal>
-          <Reveal delay={0.1} className="mt-8">
-            <Frame title="FAQ Snap">
-              <FlowCanvasMock />
-            </Frame>
-          </Reveal>
-        </div>
-      </section>
+      {!isFlow ? (
+        <section
+          id="fluxos"
+          className="border-t border-white/10 bg-[#141412] py-16"
+        >
+          <div className="mx-auto max-w-6xl px-4 sm:px-6">
+            <Reveal>
+              <p className="text-xs font-medium uppercase tracking-[0.2em] text-[#FFDD00]">
+                Snap Flow
+              </p>
+              <h2 className="mt-2 max-w-2xl text-3xl font-semibold tracking-tight text-white">
+                Start → lista → resposta → humano.
+              </h2>
+              <p className="mt-3 max-w-2xl text-zinc-400">
+                O FAQ Snap que vocês já usam: horário, o que o produto faz,
+                landing, automações. “Falar com consultor” dispara handoff e
+                pausa o bot naquela conversa.
+              </p>
+            </Reveal>
+            <Reveal delay={0.1} className="mt-8">
+              <Frame title="FAQ Snap">
+                <FlowCanvasMock />
+              </Frame>
+            </Reveal>
+          </div>
+        </section>
+      ) : null}
 
       <section id="inbox" className="border-t border-white/10 py-16">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 sm:px-6 lg:grid-cols-2 lg:items-center">
