@@ -1,7 +1,7 @@
 "use client";
 
-import { useId, useRef } from "react";
-import { motion, useInView } from "framer-motion";
+import { useEffect, useId, useRef, useState } from "react";
+import { LayoutGroup, motion, useInView } from "framer-motion";
 import LiveChat from "@/components/originkit/live-chat";
 
 const chatTheme = {
@@ -92,69 +92,121 @@ export function DashboardMock() {
   );
 }
 
-export function FunilBoardMock() {
-  const cols = [
-    { name: "New Lead", color: "#3b82f6", item: "Maria Betânia Martins" },
-    { name: "Qualified", color: "#f59e0b", item: null },
-    { name: "Proposal Sent", color: "#f97316", item: null },
-    { name: "Negotiation", color: "#a855f7", item: null },
-    { name: "Won", color: "#22c55e", item: null },
-  ];
+const FUNIL_COLS = [
+  { name: "New Lead", color: "#3b82f6", hint: "Entrou no WhatsApp" },
+  { name: "Qualified", color: "#f59e0b", hint: "Interesse confirmado" },
+  { name: "Proposal Sent", color: "#f97316", hint: "Consultor enviou" },
+  { name: "Negotiation", color: "#a855f7", hint: "Ajuste de proposta" },
+  { name: "Won", color: "#22c55e", hint: "Fechado pelo time" },
+] as const;
+
+function LeadCard({ stage }: { stage: number }) {
+  const col = FUNIL_COLS[stage];
   return (
-    <div className="overflow-x-auto bg-[#f6f4ef] p-3">
-      <div className="mb-3 flex flex-wrap gap-2 text-[10px] text-zinc-500">
+    <motion.div
+      layoutId="landing-funil-lead"
+      className="relative z-20 rounded-xl border border-zinc-200/80 bg-white p-3 shadow-[0_10px_28px_-12px_rgba(26,26,26,0.35)]"
+      transition={{ type: "spring", stiffness: 380, damping: 32, mass: 0.7 }}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[11px] font-semibold text-zinc-600">
+          MB
+        </div>
+        <span
+          className="h-2.5 w-2.5 shrink-0 rounded-full"
+          style={{ background: col.color }}
+          aria-hidden
+        />
+      </div>
+      <p className="mt-2 text-[13px] font-semibold leading-snug text-zinc-800">
+        Maria Betânia Martins
+      </p>
+      <p className="mt-0.5 text-[11px] text-zinc-500">WhatsApp · Inbox</p>
+      <p className="mt-2 text-[10px] leading-relaxed text-zinc-400">{col.hint}</p>
+      <div className="mt-2 flex items-center justify-between border-t border-zinc-100 pt-2 text-[10px] text-zinc-500">
+        <span>Valor</span>
+        <span className="font-medium text-zinc-700">Consultor fecha</span>
+      </div>
+    </motion.div>
+  );
+}
+
+export function FunilBoardMock() {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const inView = useInView(rootRef, { amount: 0.35 });
+  const [stage, setStage] = useState(0);
+
+  useEffect(() => {
+    if (!inView) {
+      setStage(0);
+      return;
+    }
+    const id = window.setInterval(() => {
+      setStage((current) => {
+        if (current >= FUNIL_COLS.length - 1) return 0;
+        return current + 1;
+      });
+    }, 1700);
+    return () => window.clearInterval(id);
+  }, [inView]);
+
+  return (
+    <div ref={rootRef} className="bg-[#f6f4ef] p-4 sm:p-5">
+      <div className="mb-4 hidden grid-cols-5 gap-2 sm:grid">
         {[
-          "Total 1",
-          "Pipeline R$ —",
-          "Ticket médio",
-          "Valor ponderado",
-          "Ganhos este mês 0",
-        ].map((label) => (
-          <span
+          ["Total", "1 negócio"],
+          ["Pipeline", "Aberto"],
+          ["Etapa", FUNIL_COLS[stage].name],
+          ["Origem", "WhatsApp"],
+          ["Fechamento", "Humano"],
+        ].map(([label, value]) => (
+          <div
             key={label}
-            className="rounded-full border border-zinc-200 bg-white px-2 py-1"
+            className="rounded-xl border border-zinc-200/80 bg-white px-3 py-2"
           >
-            {label}
-          </span>
-        ))}
-      </div>
-      <div className="flex min-w-[640px] gap-2">
-        {cols.map((col, i) => (
-          <motion.div
-            key={col.name}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.07 }}
-            className="w-36 shrink-0 rounded-xl border border-zinc-200 bg-white"
-          >
-            <div className="h-1 rounded-t-xl" style={{ background: col.color }} />
-            <p className="px-2.5 pt-2 text-[11px] font-medium text-zinc-700">
-              {col.name}
+            <p className="text-[10px] text-zinc-400">{label}</p>
+            <p className="mt-0.5 truncate text-[12px] font-medium text-zinc-700">
+              {value}
             </p>
-            <p className="px-2.5 pb-2 text-[10px] text-zinc-400">R$ 0</p>
-            <div className="px-2 pb-2">
-              {col.item ? (
-                <motion.div
-                  initial={{ scale: 0.92, opacity: 0 }}
-                  whileInView={{ scale: 1, opacity: 1 }}
-                  viewport={{ once: true }}
-                  className="rounded-lg border border-zinc-100 bg-[#f6f4ef] px-2 py-2"
-                >
-                  <p className="text-[11px] font-medium text-zinc-800">
-                    {col.item}
-                  </p>
-                  <p className="text-[10px] text-zinc-400">WhatsApp</p>
-                </motion.div>
-              ) : (
-                <div className="rounded-lg border border-dashed border-zinc-200 px-2 py-4 text-center text-[10px] text-zinc-400">
-                  Arraste um negócio
-                </div>
-              )}
-            </div>
-          </motion.div>
+          </div>
         ))}
       </div>
+      <LayoutGroup>
+        <div className="grid grid-cols-5 gap-2 sm:gap-3">
+          {FUNIL_COLS.map((col, i) => {
+            const active = stage === i;
+            return (
+              <div
+                key={col.name}
+                className="flex min-h-[220px] flex-col rounded-2xl border border-zinc-200 bg-white sm:min-h-[280px]"
+              >
+                <div
+                  className="h-1.5 rounded-t-2xl"
+                  style={{ background: col.color }}
+                />
+                <div className="flex items-baseline justify-between px-3 pt-3">
+                  <p className="text-[12px] font-semibold text-zinc-800">
+                    {col.name}
+                  </p>
+                  <span className="text-[10px] text-zinc-400">
+                    {active ? "1" : "0"}
+                  </span>
+                </div>
+                <p className="px-3 pb-2 text-[10px] text-zinc-400">{col.hint}</p>
+                <div className="flex flex-1 flex-col px-2.5 pb-3">
+                  {active ? (
+                    <LeadCard stage={stage} />
+                  ) : (
+                    <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-[#f6f4ef]/80 px-2 text-center text-[10px] leading-relaxed text-zinc-400">
+                      Arraste o negócio para cá
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </LayoutGroup>
     </div>
   );
 }

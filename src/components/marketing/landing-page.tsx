@@ -280,12 +280,12 @@ export function LandingPage({
               Funil
             </p>
             <h2 className="mt-2 max-w-2xl text-3xl font-semibold tracking-tight text-white">
-              Arraste o negócio. A conversa continua no Inbox.
+              O lead muda de coluna. A conversa não some.
             </h2>
             <p className="mt-3 max-w-2xl text-zinc-400">
-              New Lead, Qualified, Proposal, Negotiation, Won. Ticket, valor
-              ponderado e ganhos do mês no topo. Contato no card — não um
-              print no grupo da equipe.
+              Maria Betânia entra em New Lead e o card atravessa Qualified,
+              Proposal, Negotiation e Won. Cada etapa tem a coluna inteira —
+              não cinco faixinhas no canto.
             </p>
           </Reveal>
           <Reveal delay={0.12} className="mt-8">
