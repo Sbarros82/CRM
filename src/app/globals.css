@@ -256,3 +256,115 @@ html[data-theme="rose"] {
 .flow-node-appear {
   animation: flow-node-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+
+/* n8n-style execution: paint the edge green, then a packet travels it. */
+@keyframes n8n-paint {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes n8n-packet {
+  to {
+    stroke-dashoffset: -36;
+  }
+}
+
+@keyframes n8n-node-live {
+  to {
+    border-color: #00c571;
+    background: #f3fdf7;
+    box-shadow:
+      0 0 0 3px rgb(0 197 113 / 0.16),
+      0 10px 28px rgb(0 197 113 / 0.2);
+  }
+}
+
+@keyframes n8n-kind-live {
+  to {
+    color: #059669;
+  }
+}
+
+@keyframes n8n-dot-live {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes n8n-packet-on {
+  to {
+    opacity: 1;
+  }
+}
+
+.n8n-edge-idle {
+  fill: none;
+  stroke: #d6cfc4;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+}
+
+.n8n-edge-paint {
+  fill: none;
+  stroke: #00c571;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+}
+
+.n8n-edge-packet {
+  fill: none;
+  stroke: #00c571;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-dasharray: 10 16;
+  opacity: 0;
+}
+
+.n8n-status {
+  opacity: 0;
+}
+
+.n8n-running .n8n-edge-paint {
+  animation: n8n-paint 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--n8n-delay, 0s);
+}
+
+.n8n-running .n8n-edge-packet {
+  animation:
+    n8n-packet-on 0.01s linear forwards,
+    n8n-packet 0.85s linear infinite;
+  animation-delay:
+    calc(var(--n8n-delay, 0s) + 0.65s),
+    calc(var(--n8n-delay, 0s) + 0.65s);
+}
+
+.n8n-running .n8n-node {
+  animation: n8n-node-live 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--n8n-delay, 0s);
+}
+
+.n8n-running .n8n-kind {
+  animation: n8n-kind-live 0.45s ease forwards;
+  animation-delay: var(--n8n-delay, 0s);
+}
+
+.n8n-running .n8n-status {
+  animation: n8n-dot-live 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: var(--n8n-delay, 0s);
+}
+
+.react-flow__edge.animated path.react-flow__edge-path {
+  stroke: #00c571;
+  stroke-width: 2;
+}

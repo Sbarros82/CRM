@@ -1,6 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useId, useRef } from "react";
+import { motion, useInView } from "framer-motion";
 import LiveChat from "@/components/originkit/live-chat";
 
 const chatTheme = {
@@ -158,67 +159,126 @@ export function FunilBoardMock() {
   );
 }
 
+function bezierH(x1: number, y1: number, x2: number, y2: number) {
+  const mid = (x1 + x2) / 2;
+  return `M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`;
+}
+
+const FAQ_TARGETS = [
+  { kind: "Send message", text: "Atendimento: seg a sex, 9h–18h", y: 18 },
+  { kind: "Send message", text: "Planos — consultor fecha o valor", y: 96 },
+  { kind: "Send message", text: "Landing e site de captura", y: 174 },
+  { kind: "Send message", text: "Automações e handoff no CRM", y: 252 },
+  { kind: "Handoff", text: "Pediu consultor → Inbox", y: 330 },
+] as const;
+
 export function FlowCanvasMock() {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const running = useInView(rootRef, { once: true, amount: 0.4 });
+  const glowId = useId().replace(/:/g, "");
+
+  const start = { x: 28, y: 176, w: 120, h: 68 };
+  const list = { x: 214, y: 118, w: 188, h: 186 };
+  const rightX = 548;
+  const rightW = 228;
+  const rightH = 64;
+
+  const startOut = { x: start.x + start.w, y: start.y + start.h / 2 };
+  const listIn = { x: list.x, y: list.y + list.h / 2 };
+  const listOutX = list.x + list.w;
+  const listHandleYs = [152, 178, 204, 230, 256];
+
+  const trunk = bezierH(startOut.x, startOut.y, listIn.x, listIn.y);
+  const branches = FAQ_TARGETS.map((card, i) =>
+    bezierH(listOutX, listHandleYs[i], rightX, card.y + rightH / 2),
+  );
+
   return (
-    <div className="relative overflow-hidden bg-[#f6f4ef] px-3 py-8 sm:px-6">
-      <svg
-        className="pointer-events-none absolute inset-0 h-full w-full"
-        aria-hidden
-      >
-        <motion.path
-          d="M90 120 C 160 120, 160 80, 230 80"
-          fill="none"
-          stroke="#c4b5a5"
-          strokeWidth="1.5"
-          strokeDasharray="4 6"
-          initial={{ pathLength: 0 }}
-          whileInView={{ pathLength: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1.1 }}
-        />
-        <motion.path
-          d="M330 90 C 400 90, 400 50, 470 40"
-          fill="none"
-          stroke="#c4b5a5"
-          strokeWidth="1.5"
-          strokeDasharray="4 6"
-          initial={{ pathLength: 0 }}
-          whileInView={{ pathLength: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1.1, delay: 0.15 }}
-        />
-        <motion.path
-          d="M330 140 C 400 140, 400 200, 470 210"
-          fill="none"
-          stroke="#c4b5a5"
-          strokeWidth="1.5"
-          strokeDasharray="4 6"
-          initial={{ pathLength: 0 }}
-          whileInView={{ pathLength: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1.1, delay: 0.25 }}
-        />
-      </svg>
-      <div className="relative flex flex-col items-center gap-6 md:flex-row md:items-start md:justify-center">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          className="mt-8 w-[120px] rounded-xl border border-zinc-200 bg-white p-3 shadow-sm"
+    <div
+      ref={rootRef}
+      className={`overflow-hidden bg-[#f6f4ef] ${running ? "n8n-running" : ""}`}
+    >
+      <div className="relative aspect-[800/420] w-full min-h-[280px]">
+        <svg
+          className="pointer-events-none absolute inset-0 h-full w-full"
+          viewBox="0 0 800 420"
+          preserveAspectRatio="xMidYMid meet"
+          aria-hidden
         >
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-emerald-600">
+          <defs>
+            <filter id={glowId} x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="2.4" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <path className="n8n-edge-idle" d={trunk} />
+          {branches.map((d) => (
+            <path key={d} className="n8n-edge-idle" d={d} />
+          ))}
+          <path
+            className="n8n-edge-paint"
+            d={trunk}
+            pathLength={1}
+            style={{ ["--n8n-delay" as string]: "0.35s" }}
+          />
+          <path
+            className="n8n-edge-packet"
+            d={trunk}
+            style={{
+              ["--n8n-delay" as string]: "0.35s",
+              filter: `url(#${glowId})`,
+            }}
+          />
+          {branches.map((d, i) => (
+            <g key={`run-${i}`}>
+              <path
+                className="n8n-edge-paint"
+                d={d}
+                pathLength={1}
+                style={{ ["--n8n-delay" as string]: `${0.95 + i * 0.18}s` }}
+              />
+              <path
+                className="n8n-edge-packet"
+                d={d}
+                style={{
+                  ["--n8n-delay" as string]: `${0.95 + i * 0.18}s`,
+                  filter: `url(#${glowId})`,
+                }}
+              />
+            </g>
+          ))}
+        </svg>
+
+        <article
+          className="n8n-node absolute rounded-xl border border-zinc-200 bg-white p-3"
+          style={{
+            left: `${(start.x / 800) * 100}%`,
+            top: `${(start.y / 420) * 100}%`,
+            width: `${(start.w / 800) * 100}%`,
+            ["--n8n-delay" as string]: "0s",
+          }}
+        >
+          <span className="n8n-status absolute right-2 top-2 h-2 w-2 rounded-full bg-[#00c571]" />
+          <p className="n8n-kind text-[9px] font-semibold uppercase tracking-wider text-zinc-400">
             Start
           </p>
           <p className="mt-1 text-xs text-zinc-700">Entrada</p>
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.12 }}
-          className="w-[200px] rounded-xl border border-zinc-200 bg-white p-3 shadow-sm"
+        </article>
+
+        <article
+          className="n8n-node absolute rounded-xl border border-zinc-200 bg-white p-3"
+          style={{
+            left: `${(list.x / 800) * 100}%`,
+            top: `${(list.y / 420) * 100}%`,
+            width: `${(list.w / 800) * 100}%`,
+            ["--n8n-delay" as string]: "0.7s",
+          }}
         >
-          <p className="text-[9px] font-semibold uppercase tracking-wider text-violet-500">
+          <span className="n8n-status absolute right-2 top-2 h-2 w-2 rounded-full bg-[#00c571]" />
+          <p className="n8n-kind text-[9px] font-semibold uppercase tracking-wider text-zinc-400">
             Send list
           </p>
           <p className="mt-1 text-xs font-medium text-zinc-800">FAQ Snap</p>
@@ -229,30 +289,29 @@ export function FlowCanvasMock() {
             <li>Automações</li>
             <li>Falar com consultor</li>
           </ul>
-        </motion.div>
-        <div className="flex w-[220px] flex-col gap-2">
-          {[
-            ["Send message", "Atendimento: seg a sex, 9h–18h"],
-            ["Send message", "Planos — consultor fecha o valor"],
-            ["Send message", "Landing e site de captura"],
-            ["Send message", "Automações e handoff no CRM"],
-            ["Handoff", "Pediu consultor → Inbox"],
-          ].map(([kind, text], i) => (
-            <motion.div
-              key={text}
-              initial={{ opacity: 0, x: 16 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.18 + i * 0.1 }}
-              className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm"
-            >
-              <p className="text-[9px] font-semibold uppercase tracking-wider text-violet-500">
-                {kind}
-              </p>
-              <p className="mt-1 text-[11px] text-zinc-600">{text}</p>
-            </motion.div>
-          ))}
-        </div>
+        </article>
+
+        {FAQ_TARGETS.map((card, i) => (
+          <article
+            key={card.text}
+            className="n8n-node absolute rounded-xl border border-zinc-200 bg-white p-3"
+            style={{
+              left: `${(rightX / 800) * 100}%`,
+              top: `${(card.y / 420) * 100}%`,
+              width: `${(rightW / 800) * 100}%`,
+              height: `${(rightH / 420) * 100}%`,
+              ["--n8n-delay" as string]: `${1.15 + i * 0.18}s`,
+            }}
+          >
+            <span className="n8n-status absolute right-2 top-2 h-2 w-2 rounded-full bg-[#00c571]" />
+            <p className="n8n-kind text-[9px] font-semibold uppercase tracking-wider text-zinc-400">
+              {card.kind}
+            </p>
+            <p className="mt-1 text-[11px] leading-snug text-zinc-600">
+              {card.text}
+            </p>
+          </article>
+        ))}
       </div>
     </div>
   );

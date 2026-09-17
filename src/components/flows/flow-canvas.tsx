@@ -402,7 +402,7 @@ function FlowCanvasInner() {
       labelBgStyle: { fill: "var(--card)" },
       labelBgPadding: [4, 2] as [number, number],
       labelBgBorderRadius: 4,
-      style: { stroke: "var(--border)", strokeWidth: 1.5 },
+      style: { stroke: "#00C571", strokeWidth: 2 },
       type: "smoothstep",
       animated: true,
     }));
