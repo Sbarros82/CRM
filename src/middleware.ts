@@ -1,7 +1,40 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import {
+  appOrigin,
+  hostRole,
+  hostnameOf,
+  isAppPath,
+  MARKETING_HOST,
+  marketingOrigin,
+} from '@/lib/site'
 
 export async function middleware(request: NextRequest) {
+  const { pathname, search } = request.nextUrl
+  const role = hostRole(request.headers.get('host'))
+
+  if (hostnameOf(request.headers.get('host')) === `www.${MARKETING_HOST}`) {
+    const url = new URL(`${pathname}${search}`, marketingOrigin())
+    return NextResponse.redirect(url, 308)
+  }
+
+  if (role === 'marketing') {
+    if (pathname.startsWith('/api')) {
+      return NextResponse.json(
+        { error: 'API and webhooks live on app.snap.ia.br' },
+        { status: 404 },
+      )
+    }
+    if (isAppPath(pathname)) {
+      return NextResponse.redirect(new URL(`${pathname}${search}`, appOrigin()), 308)
+    }
+  }
+
+  if (role === 'app' && (pathname === '/' || pathname === '/snapflow')) {
+    const dest = pathname === '/snapflow' ? '/snapflow' : '/'
+    return NextResponse.redirect(new URL(dest, marketingOrigin()), 308)
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(

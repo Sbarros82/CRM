@@ -1,15 +1,21 @@
 import type { Metadata } from "next";
+import { JsonLd } from "@/components/marketing/json-ld";
 import { LandingPage } from "@/components/marketing/landing-page";
+import { marketingMetadata, SEO } from "@/lib/seo";
 
-export const revalidate = 0;
+export const revalidate = 3600;
 
-export const metadata: Metadata = {
-  title: "Snap — CRM no WhatsApp para o seu time",
-  description:
-    "Inbox compartilhado, funil, transmissões e IA que tria. O fechamento fica com o consultor.",
-  robots: { index: true, follow: true },
-};
+export const metadata: Metadata = marketingMetadata({
+  title: SEO.title,
+  description: SEO.description,
+  path: "/",
+});
 
 export default function HomePage() {
-  return <LandingPage />;
+  return (
+    <>
+      <JsonLd />
+      <LandingPage />
+    </>
+  );
 }

@@ -1,15 +1,21 @@
 import type { Metadata } from "next";
+import { JsonLd } from "@/components/marketing/json-ld";
 import { LandingPage } from "@/components/marketing/landing-page";
+import { marketingMetadata, SEO } from "@/lib/seo";
 
-export const revalidate = 0;
+export const revalidate = 3600;
 
-export const metadata: Metadata = {
-  title: "Snap Flow — menus e FAQ no WhatsApp",
-  description:
-    "Fluxo com botões, listas e handoff para o consultor. A triagem é automática; quem fecha é gente.",
-  robots: { index: true, follow: true },
-};
+export const metadata: Metadata = marketingMetadata({
+  title: SEO.flowTitle,
+  description: SEO.flowDescription,
+  path: "/snapflow",
+});
 
 export default function SnapFlowPage() {
-  return <LandingPage product="snapflow" />;
+  return (
+    <>
+      <JsonLd product="snapflow" />
+      <LandingPage product="snapflow" />
+    </>
+  );
 }

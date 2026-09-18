@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import HeroAurora from "@/components/marketing/hero-aurora";
 import { Reveal } from "@/components/marketing/reveal";
+import { appHref } from "@/lib/site";
 import {
   AiHandoffMock,
   BroadcastMock,
@@ -114,7 +115,7 @@ export function LandingPage({
           </nav>
           <div className="flex items-center gap-2">
             <Link
-              href="/login"
+              href={appHref("/login")}
               className="hidden rounded-full px-3 py-1.5 text-sm text-zinc-400 hover:text-white sm:inline"
             >
               Entrar
@@ -409,7 +410,7 @@ export function LandingPage({
                 Pedir demonstração
               </a>
               <Link
-                href="/login"
+                href={appHref("/login")}
                 className="inline-flex h-11 items-center rounded-full border border-white/20 px-6 text-sm font-medium text-white hover:bg-white/5"
               >
                 Já tenho conta

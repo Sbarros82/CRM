@@ -4,6 +4,8 @@ import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ThemedToaster } from "@/components/themed-toaster";
+import { SEO } from "@/lib/seo";
+import { marketingOrigin } from "@/lib/site";
 import {
   DEFAULT_MODE,
   DEFAULT_THEME,
@@ -19,24 +21,49 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(marketingOrigin()),
   title: {
-    default: "Snap",
+    default: SEO.title,
     template: "%s — Snap",
   },
-  description: "Conectando sua Equipe",
+  description: SEO.description,
+  applicationName: SEO.name,
+  authors: [{ name: "Snap" }],
+  creator: "Snap",
+  publisher: "Snap",
+  category: "business",
+  keywords: [...SEO.keywords],
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
       { url: "/icon.png", type: "image/png", sizes: "32x32" },
     ],
-    apple: [
-      { url: "/icon.png", sizes: "180x180", type: "image/png" },
-    ],
+    apple: [{ url: "/icon.png", sizes: "180x180", type: "image/png" }],
   },
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
+  },
+  verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
+    : undefined,
+  openGraph: {
+    type: "website",
+    locale: SEO.locale,
+    url: marketingOrigin(),
+    siteName: SEO.name,
+    title: SEO.title,
+    description: SEO.description,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SEO.title,
+    description: SEO.description,
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 

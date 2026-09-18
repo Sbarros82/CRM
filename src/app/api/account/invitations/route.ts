@@ -92,6 +92,9 @@ function isHostAllowed(
 }
 
 function getBaseUrl(request: Request): string {
+  const app = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (app) return app.replace(/\/+$/, "");
+
   const explicit = process.env.NEXT_PUBLIC_SITE_URL?.trim();
   if (explicit) return explicit.replace(/\/+$/, "");
 
@@ -131,7 +134,7 @@ function getBaseUrl(request: Request): string {
       "[POST /api/account/invitations] could not derive base URL from request; falling back to marketing domain",
     );
   }
-  return "https://wacrm.tech";
+  return "https://app.snap.ia.br";
 }
 
 const MAX_LABEL_LEN = 80;
