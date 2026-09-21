@@ -43,4 +43,12 @@ Boa noite! Em que posso ajudar?`;
     expect(looksLikeModelScratchpad(raw)).toBe(false);
     expect(sanitizeAiCustomerReply(raw)).toBe(raw);
   });
+
+  it("strips CPA_DONE and similar control tags", () => {
+    expect(
+      sanitizeAiCustomerReply(
+        "De nada, Maria! Fico à disposição. <CPA_DONE>",
+      ),
+    ).toBe("De nada, Maria! Fico à disposição.");
+  });
 });

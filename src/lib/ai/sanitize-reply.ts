@@ -4,6 +4,10 @@ const SCRATCHPAD =
 const INSTRUCTION_ECHO =
   /we need answer|need explain|need answer prices|portuguese brazil|portugues do brasil|no reasoning|no english|no numbered list|continue qualifying|capture lead|response options|let'?s check|short sentences|constraints:/i;
 
+/** Model / router control tags that must never reach WhatsApp. */
+const CONTROL_TAGS =
+  /<\/?(?:CPA_DONE|think|thinking|reasoning|scratchpad|system)[^>]*>/gi;
+
 /**
  * True when the model dumped chain-of-thought or restated the
  * system prompt instead of answering the customer.
@@ -34,7 +38,11 @@ export function sanitizeAiCustomerReply(
   raw: string,
   fallback = "Olá! Como posso ajudar?",
 ): string {
-  let t = raw.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+  let t = raw
+    .replace(/<think>[\s\S]*?<\/think>/gi, "")
+    .replace(CONTROL_TAGS, "")
+    .replace(/\bCPA_DONE\b/gi, "")
+    .trim();
   if (!t) return fallback;
 
   if (looksLikeModelScratchpad(t)) {
