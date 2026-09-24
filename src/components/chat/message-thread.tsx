@@ -6,6 +6,7 @@ import { Loader2, Hash, MessageCircle, ArrowDown, ChevronLeft } from "lucide-rea
 import { MessageBubble, DateSeparator } from "@/components/chat/message-bubble";
 import { MessageComposer } from "@/components/chat/message-composer";
 import { useChatMessages } from "@/hooks/use-chat-messages";
+import { createClient } from "@/lib/supabase/client";
 import type { ChatChannel, ChatMessage } from "@/types";
 
 interface MessageThreadProps {
@@ -71,10 +72,12 @@ export function MessageThread({
   useEffect(() => {
     if (!channelId) return;
     onMarkRead(channelId);
-    // Marca no servidor via RPC.
-    import("@/lib/supabase/client").then(({ createClient }) => {
-      createClient().rpc("mark_channel_read", { p_channel_id: channelId });
-    });
+    // Persiste last_read_at no servidor (badge do nav ouve o emit local).
+    void createClient()
+      .rpc("mark_channel_read", { p_channel_id: channelId })
+      .then(({ error }) => {
+        if (error) console.error("[chat] mark_channel_read:", error.message);
+      });
   }, [channelId, onMarkRead]);
 
   const handleScroll = useCallback(() => {

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { onChatChannelRead } from "@/lib/chat/read-events";
 import type { ChatMessage } from "@/types";
 
 /**
@@ -27,6 +28,16 @@ export function useTotalChatUnread(): number {
     for (const n of unreadMapRef.current.values()) sum += n;
     setTotal(sum);
   };
+
+  // Optimistic clear when any screen marks a channel read (mobile nav
+  // badge was stuck because Realtime often skipped the member UPDATE).
+  useEffect(() => {
+    return onChatChannelRead((channelId, lastReadAt) => {
+      lastReadRef.current.set(channelId, lastReadAt);
+      unreadMapRef.current.set(channelId, 0);
+      recompute();
+    });
+  }, []);
 
   useEffect(() => {
     if (!user) return;

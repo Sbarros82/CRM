@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { emitChatChannelRead } from "@/lib/chat/read-events";
 import type { ChatChannel, ChatMessage } from "@/types";
 
 /**
@@ -212,6 +213,7 @@ export function useChatChannels() {
   const markAsRead = useCallback((channelId: string) => {
     const now = new Date().toISOString();
     lastReadRef.current.set(channelId, now);
+    emitChatChannelRead(channelId, now);
     setChannels((prev) => {
       const target = prev.find((ch) => ch.id === channelId);
       if (!target || target.unread_count === 0) return prev;
