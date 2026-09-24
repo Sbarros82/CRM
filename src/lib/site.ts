@@ -43,7 +43,13 @@ export function appHref(path: string): string {
   return `${origin}${suffix}`;
 }
 
-export const MARKETING_PATHS = new Set(["/", "/snapflow"]);
+export const MARKETING_PATHS = new Set([
+  "/",
+  "/snapflow",
+  "/privacidade",
+  "/termos",
+  "/exclusao-de-dados",
+]);
 
 export const APP_PATH_PREFIXES = [
   "/login",

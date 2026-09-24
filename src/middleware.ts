@@ -30,8 +30,8 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (role === 'app' && (pathname === '/' || pathname === '/snapflow')) {
-    const dest = pathname === '/snapflow' ? '/snapflow' : '/'
+  if (role === "app" && (pathname === "/" || pathname === "/snapflow" || pathname === "/privacidade" || pathname === "/termos" || pathname === "/exclusao-de-dados")) {
+    const dest = pathname === "/" ? "/" : pathname
     return NextResponse.redirect(new URL(dest, marketingOrigin()), 308)
   }
 
