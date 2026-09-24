@@ -155,8 +155,25 @@ export function useChatMessages(channelId: string | null): UseChatMessagesResult
           if (cancelled) return;
           const [enriched] = await enrichMessages([payload.new as ChatMessage]);
           setMessages((prev) => {
-            // Evita duplicatas (optimistic update já pode tê-la).
+            // Já temos a linha real (insert().select ou INSERT anterior).
             if (prev.some((m) => m.id === enriched.id)) return prev;
+
+            // Substitui a bolha optimistic do mesmo envio (mesmo sender +
+            // texto + anexo). Sem isso o Realtime adiciona uma 2ª cópia e
+            // só some ao sair/voltar do canal.
+            const optimisticIdx = prev.findIndex(
+              (m) =>
+                m.id.startsWith("optimistic-") &&
+                m.sender_id === enriched.sender_id &&
+                m.content_text === enriched.content_text &&
+                (m.attachment_url ?? null) === (enriched.attachment_url ?? null)
+            );
+            if (optimisticIdx >= 0) {
+              const next = [...prev];
+              next[optimisticIdx] = enriched;
+              return next;
+            }
+
             return [...prev, enriched];
           });
         }
@@ -286,24 +303,39 @@ export function useChatMessages(channelId: string | null): UseChatMessagesResult
       };
       setMessages((prev) => [...prev, optimistic]);
 
-      const { error } = await supabase.from("chat_messages").insert({
-        channel_id: channelId,
-        sender_id: user.id,
-        content_text: trimmedText || " ", // espaço mínimo se não houver texto
-        reply_to_id: replyToId ?? null,
-        attachment_url: attachment?.url ?? null,
-        attachment_name: attachment?.file.name ?? null,
-        attachment_type: attachment?.file.type ?? null,
-        attachment_size: attachment?.file.size ?? null,
-      });
+      const { data: inserted, error } = await supabase
+        .from("chat_messages")
+        .insert({
+          channel_id: channelId,
+          sender_id: user.id,
+          content_text: trimmedText || " ", // espaço mínimo se não houver texto
+          reply_to_id: replyToId ?? null,
+          attachment_url: attachment?.url ?? null,
+          attachment_name: attachment?.file.name ?? null,
+          attachment_type: attachment?.file.type ?? null,
+          attachment_size: attachment?.file.size ?? null,
+        })
+        .select("*")
+        .single();
 
-      if (error) {
+      if (error || !inserted) {
         // Reverte optimistic em caso de erro.
         setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
-        console.error("[useChatMessages] sendMessage error:", error.message);
+        console.error("[useChatMessages] sendMessage error:", error?.message);
+        return;
       }
+
+      // Troca o id temporário pelo real antes do Realtime (ou se o
+      // Realtime chegar antes, o handler de INSERT também faz o swap).
+      const [enriched] = await enrichMessages([inserted as ChatMessage]);
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === enriched.id)) {
+          return prev.filter((m) => m.id !== optimisticId);
+        }
+        return prev.map((m) => (m.id === optimisticId ? enriched : m));
+      });
     },
-    [channelId, user]
+    [channelId, user, enrichMessages]
   );
 
   // Edita mensagem própria.
