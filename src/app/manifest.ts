@@ -6,7 +6,10 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Snap",
     description:
       "Conversas ao vivo no WhatsApp e chat interno da equipe. CRM completo no computador.",
-    start_url: "/inbox",
+    // Login first — /inbox redirects to /login when logged out, and
+    // that redirect chain breaks some Android installed PWAs on open.
+    start_url: "/login",
+    id: "/login",
     scope: "/",
     display: "standalone",
     orientation: "portrait-primary",

@@ -10,7 +10,6 @@ import { MobileRouteGuard } from "@/components/layout/mobile-route-guard";
 import { PresenceHeartbeat } from "@/components/presence/presence-heartbeat";
 import { HandoffScreenPush } from "@/components/inbox/handoff-screen-push";
 import { ChatScreenPush } from "@/components/chat/chat-screen-push";
-import { PwaRegister } from "@/components/pwa-register";
 
 function DashboardShellInner({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -44,7 +43,6 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
       <PresenceHeartbeat />
       <HandoffScreenPush />
       <ChatScreenPush />
-      <PwaRegister />
       <Suspense fallback={null}>
         <MobileRouteGuard />
       </Suspense>

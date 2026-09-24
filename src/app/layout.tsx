@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { ThemedToaster } from "@/components/themed-toaster";
+import { PwaRegister } from "@/components/pwa-register";
 import { SEO } from "@/lib/seo";
 import { marketingOrigin } from "@/lib/site";
 import {
@@ -147,6 +148,7 @@ export default function RootLayout({
         <ThemeProvider>
           {children}
           <ThemedToaster />
+          <PwaRegister />
         </ThemeProvider>
       </body>
     </html>
