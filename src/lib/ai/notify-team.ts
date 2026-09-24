@@ -1,9 +1,60 @@
 import { supabaseAdmin } from "@/lib/flows/admin-client";
 import { decrypt, isLegacyFormat } from "@/lib/whatsapp/encryption";
 import { sendTextMessage } from "@/lib/whatsapp/meta-api";
-import { phonesMatch } from "@/lib/whatsapp/phone-utils";
+import { phonesMatch, sanitizePhoneForMeta } from "@/lib/whatsapp/phone-utils";
 import { derivePresence } from "@/lib/presence";
-import type { HandoffMode } from "./handoff-meta";
+import { parseNotifyPhones, type HandoffMode } from "./handoff-meta";
+
+type MemberRow = {
+  user_id: string;
+  account_role: string | null;
+  whatsapp_notify_phone: string | null;
+};
+
+function toNotifyPhone(raw: string | null | undefined): string | null {
+  if (!raw?.trim()) return null;
+  const fromParser = parseNotifyPhones(raw)[0];
+  if (fromParser) return fromParser;
+  const digits = sanitizePhoneForMeta(raw);
+  return digits.length >= 10 ? digits : null;
+}
+
+function isEligibleRole(role: string | null | undefined): boolean {
+  return ["owner", "admin", "agent"].includes(String(role ?? ""));
+}
+
+async function loadMembersAndPresence(accountId: string): Promise<{
+  members: MemberRow[];
+  onlineUserIds: Set<string>;
+}> {
+  const db = supabaseAdmin();
+  const [{ data: members }, { data: presence }] = await Promise.all([
+    db
+      .from("profiles")
+      .select("user_id, account_role, whatsapp_notify_phone")
+      .eq("account_id", accountId),
+    db
+      .from("member_presence")
+      .select("user_id, status, last_seen_at")
+      .eq("account_id", accountId),
+  ]);
+
+  const now = Date.now();
+  const onlineUserIds = new Set<string>();
+  for (const row of presence ?? []) {
+    const status = derivePresence(
+      row.status === "away" || row.status === "online" ? row.status : undefined,
+      row.last_seen_at ?? null,
+      now,
+    );
+    if (status === "online") onlineUserIds.add(row.user_id);
+  }
+
+  return {
+    members: (members ?? []) as MemberRow[],
+    onlineUserIds,
+  };
+}
 
 export async function pickHandoffAssignee(
   accountId: string,
@@ -13,36 +64,75 @@ export async function pickHandoffAssignee(
   if (mode === "owner") return ownerUserId;
   if (mode === "queue") return null;
 
-  const db = supabaseAdmin();
-  const [{ data: members }, { data: presence }] = await Promise.all([
-    db
-      .from("profiles")
-      .select("user_id, account_role")
-      .eq("account_id", accountId),
-    db
-      .from("member_presence")
-      .select("user_id, status, last_seen_at")
-      .eq("account_id", accountId),
-  ]);
-
-  const eligible = (members ?? []).filter((m) =>
-    ["owner", "admin", "agent"].includes(String(m.account_role)),
+  const { members, onlineUserIds } = await loadMembersAndPresence(accountId);
+  const online = members.filter(
+    (m) => isEligibleRole(m.account_role) && onlineUserIds.has(m.user_id),
   );
-  const now = Date.now();
-  const online = eligible.filter((m) => {
-    const row = (presence ?? []).find((p) => p.user_id === m.user_id);
-    return (
-      derivePresence(
-        row?.status === "away" || row?.status === "online"
-          ? row.status
-          : undefined,
-        row?.last_seen_at ?? null,
-        now,
-      ) === "online"
-    );
-  });
   if (online.length === 0) return null;
   return online[Math.floor(Math.random() * online.length)]?.user_id ?? null;
+}
+
+/**
+ * Resolve which personal WhatsApp numbers receive the handoff ping.
+ * Prefers each member's `whatsapp_notify_phone` (from profile). Falls
+ * back to the static list in Agente de IA settings.
+ */
+export async function resolveHandoffNotifyPhones(args: {
+  accountId: string;
+  mode: HandoffMode;
+  assigneeUserId: string | null;
+  ownerUserId: string | null;
+  fallbackPhones: string[];
+}): Promise<string[]> {
+  const { members, onlineUserIds } = await loadMembersAndPresence(
+    args.accountId,
+  );
+  const eligible = members.filter((m) => isEligibleRole(m.account_role));
+
+  const phoneOf = (userId: string | null | undefined): string | null => {
+    if (!userId) return null;
+    const row = eligible.find((m) => m.user_id === userId);
+    return toNotifyPhone(row?.whatsapp_notify_phone);
+  };
+
+  const phonesOf = (rows: MemberRow[]): string[] => {
+    const out: string[] = [];
+    const seen = new Set<string>();
+    for (const row of rows) {
+      const phone = toNotifyPhone(row.whatsapp_notify_phone);
+      if (!phone || seen.has(phone)) continue;
+      seen.add(phone);
+      out.push(phone);
+    }
+    return out;
+  };
+
+  let resolved: string[] = [];
+
+  if (args.mode === "online") {
+    const onlineMembers = eligible.filter((m) =>
+      onlineUserIds.has(m.user_id),
+    );
+    resolved = phonesOf(onlineMembers);
+    if (resolved.length === 0) {
+      const assigneePhone = phoneOf(args.assigneeUserId);
+      if (assigneePhone) resolved = [assigneePhone];
+    }
+  } else if (args.mode === "owner") {
+    const ownerPhone = phoneOf(args.ownerUserId);
+    if (ownerPhone) resolved = [ownerPhone];
+  } else {
+    // queue — ping everyone who registered a WhatsApp
+    resolved = phonesOf(eligible);
+  }
+
+  if (resolved.length === 0) {
+    resolved = args.fallbackPhones
+      .map((p) => toNotifyPhone(p))
+      .filter((p): p is string => !!p);
+  }
+
+  return resolved;
 }
 
 export async function sendHandoffWhatsAppAlerts(args: {
@@ -85,7 +175,7 @@ export async function sendHandoffWhatsAppAlerts(args: {
     process.env.NEXT_PUBLIC_APP_URL ||
     (process.env.VERCEL_PROJECT_PRODUCTION_URL
       ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-      : "https://crm-phi-red-71.vercel.app");
+      : "https://app.snap.ia.br");
   const text = [
     "Snap: lead pronto para um humano fechar.",
     `${name}${args.leadPhone ? ` · ${args.leadPhone}` : ""}`,

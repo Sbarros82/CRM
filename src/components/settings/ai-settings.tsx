@@ -216,13 +216,14 @@ export function AiSettingsPanel() {
             <option value="owner">Só o dono da conta</option>
           </select>
           <p className="text-xs text-muted-foreground">
-            A conversa fica em Inbox → Humano. O primeiro da equipe que
-            responder assume o lead. Convide vendedores em Membros.
+            A conversa fica em Inbox → Humano. Com “online”, o Snap atribui
+            a quem estiver online e avisa no WhatsApp cadastrado no perfil
+            de cada um (Configurações → Seu perfil).
           </p>
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="notify-phones">WhatsApp da equipe (avisos)</Label>
+          <Label htmlFor="notify-phones">WhatsApp da equipe (reserva)</Label>
           <Textarea
             id="notify-phones"
             rows={3}
@@ -235,10 +236,10 @@ export function AiSettingsPanel() {
             }
           />
           <p className="text-xs text-muted-foreground">
-            Um número por linha, o celular de cada vendedor. Eles recebem
-            “lead pronto para fechar” no WhatsApp. Esse número precisa ter
-            falado com o WhatsApp da empresa nas últimas 24h. Não use o
-            mesmo número do cliente.
+            Lista reserva (um número por linha). Só é usada se ninguém online
+            tiver WhatsApp no perfil. Prefira cadastrar o celular em Seu
+            perfil. O número precisa ter falado com o WhatsApp da empresa
+            nas últimas 24h. Não use o mesmo número do cliente.
           </p>
         </div>
 

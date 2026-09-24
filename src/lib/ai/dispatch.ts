@@ -6,7 +6,7 @@ import { isSessionOpen } from "@/lib/whatsapp/session-window";
 import { completeChat, type ChatTurn } from "./providers";
 import { looksLikeModelScratchpad, sanitizeAiCustomerReply, isSafeCustomerReply } from "./sanitize-reply";
 import { captureLeadOnHandoff } from "./capture-lead";
-import { pickHandoffAssignee, sendHandoffWhatsAppAlerts } from "./notify-team";
+import { pickHandoffAssignee, resolveHandoffNotifyPhones, sendHandoffWhatsAppAlerts } from "./notify-team";
 import {
   extractSpokenName,
   firstNameFromDisplay,
@@ -349,9 +349,17 @@ async function pauseAiAndNotify(
     reason,
   });
 
+  const notifyPhones = await resolveHandoffNotifyPhones({
+    accountId: args.accountId,
+    mode,
+    assigneeUserId: assignee,
+    ownerUserId: account?.owner_user_id ?? null,
+    fallbackPhones: settings?.handoff.phones ?? [],
+  });
+
   await sendHandoffWhatsAppAlerts({
     accountId: args.accountId,
-    phones: settings?.handoff.phones ?? [],
+    phones: notifyPhones,
     leadPhone: contact?.phone ?? null,
     leadName: contact?.name ?? null,
     conversationId: args.conversationId,

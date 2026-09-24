@@ -37,6 +37,7 @@ export function ProfileForm() {
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [whatsappNotify, setWhatsappNotify] = useState('');
   const [pendingAvatar, setPendingAvatar] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [removeAvatar, setRemoveAvatar] = useState(false);
@@ -48,6 +49,7 @@ export function ProfileForm() {
     if (!profile) return;
     setFullName(profile.full_name ?? '');
     setEmail(profile.email ?? '');
+    setWhatsappNotify(profile.whatsapp_notify_phone ?? '');
   }, [profile]);
 
   // Cleanup object URLs to avoid leaks.
@@ -143,6 +145,7 @@ export function ProfileForm() {
         .update({
           full_name: trimmedName,
           avatar_url: nextAvatarUrl,
+          whatsapp_notify_phone: whatsappNotify.trim() || null,
         })
         .eq('user_id', user.id);
       if (updateError) {
@@ -193,6 +196,7 @@ export function ProfileForm() {
     !!profile &&
     (fullName.trim() !== (profile.full_name ?? '') ||
       email.trim().toLowerCase() !== (profile.email ?? '').toLowerCase() ||
+      whatsappNotify.trim() !== (profile.whatsapp_notify_phone ?? '').trim() ||
       pendingAvatar !== null ||
       removeAvatar);
 
@@ -298,6 +302,27 @@ export function ProfileForm() {
                 </span>
               </p>
             )}
+          </div>
+
+          {/* WhatsApp for AI handoff alerts */}
+          <div className="space-y-2">
+            <Label htmlFor="profile-whatsapp" className="text-foreground">
+              WhatsApp para avisos da IA
+            </Label>
+            <Input
+              id="profile-whatsapp"
+              type="tel"
+              inputMode="tel"
+              value={whatsappNotify}
+              onChange={(e) => setWhatsappNotify(e.target.value)}
+              placeholder="82 9xxxx-xxxx"
+              disabled={saving}
+            />
+            <p className="text-xs text-muted-foreground">
+              Seu celular pessoal. Quando a IA passar um lead e você estiver
+              online no Snap, recebe um aviso neste número. Precisa ter falado
+              com o WhatsApp da empresa nas últimas 24h (ou receber um template).
+            </p>
           </div>
 
           {/* Read-only block */}

@@ -35,6 +35,11 @@ export interface Profile {
    * `@/lib/auth/roles` rather than comparing this string directly.
    */
   account_role?: AccountRole;
+  /**
+   * Personal WhatsApp (digits / BR format) used for AI handoff
+   * alerts when this member is online. Optional.
+   */
+  whatsapp_notify_phone?: string | null;
   created_at: string;
 }
 
