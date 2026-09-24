@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
-import { Loader2, Hash, MessageCircle, ArrowDown } from "lucide-react";
+import { Loader2, Hash, MessageCircle, ArrowDown, ChevronLeft } from "lucide-react";
 import { MessageBubble, DateSeparator } from "@/components/chat/message-bubble";
 import { MessageComposer } from "@/components/chat/message-composer";
 import { useChatMessages } from "@/hooks/use-chat-messages";
@@ -13,6 +13,8 @@ interface MessageThreadProps {
   currentUserId: string;
   dmPartnerName?: string;
   onMarkRead: (channelId: string) => void;
+  /** Mobile: volta para a lista de canais / DMs. */
+  onBack?: () => void;
 }
 
 /**
@@ -44,6 +46,7 @@ export function MessageThread({
   currentUserId,
   dmPartnerName,
   onMarkRead,
+  onBack,
 }: MessageThreadProps) {
   const { messages, loading, hasMore, loadMore, sendMessage, uploadAttachment, editMessage, deleteMessage } =
     useChatMessages(channel?.id ?? null);
@@ -117,18 +120,28 @@ export function MessageThread({
   return (
     <div className="flex h-full flex-col">
       {/* Cabeçalho do canal */}
-      <div className="flex items-center gap-2 border-b border-border bg-card px-4 py-3">
+      <div className="flex items-center gap-2 border-b border-border bg-card px-3 py-3 sm:px-4">
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="mr-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-foreground hover:bg-accent lg:hidden"
+            aria-label="Voltar para canais"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+        )}
         {channel.is_dm ? (
           <MessageCircle className="h-5 w-5 shrink-0 text-muted-foreground" />
         ) : (
           <Hash className="h-5 w-5 shrink-0 text-muted-foreground" />
         )}
-        <div>
-          <h2 className="text-sm font-semibold text-foreground">
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate text-sm font-semibold text-foreground">
             {channel.is_dm ? (dmPartnerName ?? "Conversa direta") : channel.name}
           </h2>
           {channel.description && (
-            <p className="text-xs text-muted-foreground">{channel.description}</p>
+            <p className="truncate text-xs text-muted-foreground">{channel.description}</p>
           )}
         </div>
       </div>

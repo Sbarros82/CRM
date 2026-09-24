@@ -12,6 +12,7 @@ import { CreateChannelDialog } from "@/components/chat/create-channel-dialog";
 import { NewDmDialog } from "@/components/chat/new-dm-dialog";
 import { createClient } from "@/lib/supabase/client";
 import { setFocusedChatChannel } from "@/lib/chat/focused-channel";
+import { cn } from "@/lib/utils";
 import type { ChatChannelMember } from "@/types";
 
 export default function ChatPage() {
@@ -29,11 +30,19 @@ export default function ChatPage() {
   const [showCreateChannel, setShowCreateChannel] = useState(false);
   const [showNewDm, setShowNewDm] = useState(false);
   const [showMembersPanel, setShowMembersPanel] = useState(true);
+  // Mobile: list of channels/DMs first; thread only after picking one.
+  // Deep-link ?c= opens the thread directly.
+  const [mobileShowThread, setMobileShowThread] = useState(
+    () => Boolean(requestedChannelId),
+  );
 
   const activeChannel = channels.find((c) => c.id === activeChannelId) ?? null;
 
   useEffect(() => {
-    if (requestedChannelId) setActiveChannelId(requestedChannelId);
+    if (requestedChannelId) {
+      setActiveChannelId(requestedChannelId);
+      setMobileShowThread(true);
+    }
   }, [requestedChannelId]);
 
   useEffect(() => {
@@ -41,7 +50,8 @@ export default function ChatPage() {
     return () => setFocusedChatChannel(null);
   }, [activeChannelId]);
 
-  // Seleciona o canal pedido na URL, ou o primeiro ao carregar.
+  // Seleciona o canal pedido na URL, ou o primeiro ao carregar (desktop).
+  // No mobile a lista fica em primeiro plano até o usuário escolher.
   useEffect(() => {
     if (activeChannelId) return;
     if (requestedChannelId && channels.some((c) => c.id === requestedChannelId)) {
@@ -52,6 +62,15 @@ export default function ChatPage() {
       setActiveChannelId(channels[0].id);
     }
   }, [channels, activeChannelId, requestedChannelId]);
+
+  const selectChannel = useCallback(
+    (id: string) => {
+      setActiveChannelId(id);
+      markAsRead(id);
+      setMobileShowThread(true);
+    },
+    [markAsRead],
+  );
 
   // Carrega membros do canal ativo e atualiza se alguém entrar.
   useEffect(() => {
@@ -193,26 +212,31 @@ export default function ChatPage() {
       });
       if (error || !data) return;
       await refetch();
-      setActiveChannelId(data as string);
+      selectChannel(data as string);
     },
-    [refetch]
+    [refetch, selectChannel]
   );
 
   // Callback quando canal criado ou DM aberto.
   const handleChannelCreated = useCallback(
     async (channelId: string) => {
       await refetch();
-      setActiveChannelId(channelId);
+      selectChannel(channelId);
     },
-    [refetch]
+    [refetch, selectChannel]
   );
 
   if (!user || !accountId) return null;
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
-      {/* ── Sidebar de canais (240px) ── */}
-      <div className="hidden w-60 shrink-0 lg:block">
+    <div className="-mx-4 -mb-20 flex h-[calc(100dvh-3.5rem-3.5rem)] overflow-hidden sm:-mx-6 lg:mx-0 lg:mb-0 lg:h-[calc(100vh-3.5rem)]">
+      {/* Lista de canais + DMs: full-width no celular; sidebar no desktop */}
+      <div
+        className={cn(
+          "w-full shrink-0 lg:block lg:w-60",
+          mobileShowThread ? "hidden lg:block" : "block",
+        )}
+      >
         <ChannelSidebar
           channels={channels}
           availableChannels={availableChannels}
@@ -220,33 +244,33 @@ export default function ChatPage() {
           members={[...channelMembers, ...dmMembers]}
           getPresence={getPresence}
           currentUserId={user.id}
-          onSelectChannel={(id) => {
-            setActiveChannelId(id);
-            markAsRead(id);
-          }}
+          onSelectChannel={selectChannel}
           onCreateChannel={() => setShowCreateChannel(true)}
           onStartDm={() => setShowNewDm(true)}
           onJoinChannel={async (id) => {
             const ok = await joinChannel(id);
-            if (ok) {
-              setActiveChannelId(id);
-              markAsRead(id);
-            }
+            if (ok) selectChannel(id);
           }}
         />
       </div>
 
-      {/* ── Thread central (flex-1) ── */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      {/* Thread: hidden on mobile until a channel/DM is chosen */}
+      <div
+        className={cn(
+          "min-w-0 flex-1 flex-col overflow-hidden",
+          mobileShowThread ? "flex" : "hidden lg:flex",
+        )}
+      >
         <MessageThread
           channel={activeChannel}
           currentUserId={user.id}
           dmPartnerName={dmPartnerName()}
           onMarkRead={markAsRead}
+          onBack={() => setMobileShowThread(false)}
         />
       </div>
 
-      {/* ── Painel de membros (220px) — oculto em mobile e em DMs ── */}
+      {/* Painel de membros — só desktop, só canais (não DM) */}
       {showMembersPanel && !activeChannel?.is_dm && (
         <div className="hidden w-56 shrink-0 lg:block">
           <MembersPanel
@@ -260,7 +284,6 @@ export default function ChatPage() {
         </div>
       )}
 
-      {/* ── Dialogs ── */}
       <CreateChannelDialog
         open={showCreateChannel}
         onClose={() => setShowCreateChannel(false)}
