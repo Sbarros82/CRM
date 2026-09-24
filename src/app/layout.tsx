@@ -36,9 +36,15 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
-      { url: "/icon.png", type: "image/png", sizes: "32x32" },
+      { url: "/logo.png", type: "image/png", sizes: "192x192" },
+      { url: "/meta-app-icon-1024.png", type: "image/png", sizes: "512x512" },
     ],
-    apple: [{ url: "/icon.png", sizes: "180x180", type: "image/png" }],
+    apple: [{ url: "/meta-app-icon-1024.png", sizes: "180x180", type: "image/png" }],
+  },
+  appleWebApp: {
+    capable: true,
+    title: "Snap",
+    statusBarStyle: "black-translucent",
   },
   formatDetection: {
     email: false,
@@ -68,8 +74,14 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#020617",
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#0C0C0A" },
+    { media: "(prefers-color-scheme: light)", color: "#0C0C0A" },
+  ],
   colorScheme: "dark light",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 // Inline boot script — runs before React hydrates so the user's

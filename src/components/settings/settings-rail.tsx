@@ -25,10 +25,13 @@ export function SettingsRail({
   active,
   onSelect,
   hints,
+  allowed,
 }: {
   active: SettingsSection;
   onSelect: (section: SettingsSection) => void;
   hints?: Partial<Record<SettingsSection, ReactNode>>;
+  /** When set (phone companion), only these sections appear. */
+  allowed?: ReadonlySet<string>;
 }) {
   const activeRef = useRef<HTMLButtonElement>(null);
 
@@ -55,8 +58,11 @@ export function SettingsRail({
     >
       {RAIL_GROUPS.map(({ label, group }) => {
         const items = SETTINGS_SECTIONS.filter(
-          (s) => SECTION_META[s].group === group,
+          (s) =>
+            SECTION_META[s].group === group &&
+            (!allowed || allowed.has(s)),
         );
+        if (items.length === 0) return null;
         return (
           <div
             key={group}

@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useTheme } from '@/hooks/use-theme';
+import { useIsDesktop } from '@/hooks/use-media-query';
+import { MOBILE_SETTINGS_TABS } from '@/lib/mobile-app';
 import { SettingsRail } from '@/components/settings/settings-rail';
 import { SettingsOverview } from '@/components/settings/settings-overview';
 import { ProfileForm } from '@/components/settings/profile-form';
@@ -28,22 +30,19 @@ export default function SettingsPage() {
   const searchParams = useSearchParams();
   const { defaultCurrency } = useAuth();
   const { mode } = useTheme();
+  const desktop = useIsDesktop();
 
-  // The URL (`?tab=`) is the single source of truth for the active
-  // section — deep-linkable, and it keeps the existing links in the
-  // app sidebar/header working. Legacy tab values (tags, custom-fields)
-  // resolve onto their new home; unknown/empty → the Overview landing.
   const section = resolveSection(searchParams.get('tab'));
+  const active: SettingsSection =
+    !desktop && !MOBILE_SETTINGS_TABS.has(section) ? 'profile' : section;
 
   const go = (next: SettingsSection) => {
+    if (!desktop && !MOBILE_SETTINGS_TABS.has(next)) return;
     const params = new URLSearchParams(searchParams.toString());
     params.set('tab', next);
     router.replace(`/settings?${params.toString()}`, { scroll: false });
   };
 
-  // Cheap, fetch-free rail hints. The Overview landing carries the
-  // full live status/counts; the rail just surfaces the two that are
-  // already in context.
   const hints: Partial<Record<SettingsSection, ReactNode>> = useMemo(
     () => ({
       appearance: mode.charAt(0).toUpperCase() + mode.slice(1),
@@ -71,17 +70,23 @@ export default function SettingsPage() {
     <div>
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          Configurações
+          {desktop ? 'Configurações' : 'Perfil'}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Tudo em um só lugar — sua conta e seu espaço de trabalho. Escolha uma
-          seção para gerenciá-la.
+          {desktop
+            ? 'Tudo em um só lugar — sua conta e seu espaço de trabalho. Escolha uma seção para gerenciá-la.'
+            : 'Nome, WhatsApp de avisos e aparência. Funil, WhatsApp Business e o resto ficam no computador.'}
         </p>
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[236px_minmax(0,1fr)] lg:items-start">
-        <SettingsRail active={section} onSelect={go} hints={hints} />
-        <div className="min-w-0">{panel[section]}</div>
+        <SettingsRail
+          active={active}
+          onSelect={go}
+          hints={hints}
+          allowed={desktop ? undefined : MOBILE_SETTINGS_TABS}
+        />
+        <div className="min-w-0">{panel[active]}</div>
       </div>
     </div>
   );
