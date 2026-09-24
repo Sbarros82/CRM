@@ -78,9 +78,10 @@ export function useTotalChatUnread(): number {
       recompute();
     })();
 
-    // Realtime: nova mensagem → incrementa; membro atualizado → zera canal.
+    // Unique topic per mount — same dual Sidebar/MobileBottomNav issue
+    // as useTotalUnread (shared name → callbacks after subscribe crash).
     const channel = supabase
-      .channel("total-chat-unread")
+      .channel(`total-chat-unread-${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "chat_messages" },

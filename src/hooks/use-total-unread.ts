@@ -42,8 +42,12 @@ export function useTotalUnread(): number {
       setTotal(sum);
     })();
 
+    // Unique topic per mount — Sidebar + MobileBottomNav both call this
+    // hook; reusing "total-unread-realtime" makes the 2nd instance call
+    // .on() after the shared channel already subscribed() and crashes
+    // with: cannot add 'postgres changes' callbacks after subscribe().
     const channel = supabase
-      .channel("total-unread-realtime")
+      .channel(`total-unread-${crypto.randomUUID()}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "conversations" },
