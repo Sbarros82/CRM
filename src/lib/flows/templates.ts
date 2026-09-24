@@ -132,7 +132,7 @@ const FAQ_BOT: FlowTemplate = {
   slug: "faq_bot",
   name: "FAQ Snap",
   description:
-    "Menu em português: horário, planos do Snap, site/landing, automações e consultor. Dispara com menu, faq ou dúvida.",
+    "A IA cumprimenta e faz triagem. Este menu abre quando o cliente digita menu, faq, dúvida ou assuntos.",
   icon: "HelpCircle",
   trigger_type: "keyword",
   trigger_config: {
