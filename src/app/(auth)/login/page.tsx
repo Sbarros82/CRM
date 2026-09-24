@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,6 @@ function LoginPageInner() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -46,10 +45,12 @@ function LoginPageInner() {
       return;
     }
 
+    // Full navigation so the session cookie is on the next document
+    // request. Soft router.push broke Android installed PWAs after login.
     if (inviteToken) {
-      router.push(`/join/${encodeURIComponent(inviteToken)}`);
+      window.location.assign(`/join/${encodeURIComponent(inviteToken)}`);
     } else {
-      router.push("/inbox");
+      window.location.assign("/inbox");
     }
   };
 

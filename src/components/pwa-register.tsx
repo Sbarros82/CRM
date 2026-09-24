@@ -2,7 +2,11 @@
 
 import { useEffect } from "react";
 
-/** Registers the Snap service worker (needed for Android install + updates). */
+/**
+ * Registers a minimal service worker (installability only).
+ * Reloads once when an *updated* SW takes control so Android drops the
+ * broken v2 fetch interceptor that broke post-login navigation.
+ */
 export function PwaRegister() {
   useEffect(() => {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
@@ -15,13 +19,29 @@ export function PwaRegister() {
       return;
     }
 
+    const hadController = Boolean(navigator.serviceWorker.controller);
+    let refreshing = false;
+    const onControllerChange = () => {
+      if (!hadController || refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    };
+    navigator.serviceWorker.addEventListener(
+      "controllerchange",
+      onControllerChange,
+    );
+
     navigator.serviceWorker
       .register("/sw.js", { scope: "/" })
-      .then((reg) => {
-        // Force check so f5b9ac7 → next deploy picks up sw.js changes.
-        reg.update().catch(() => undefined);
-      })
+      .then((reg) => reg.update().catch(() => undefined))
       .catch(() => undefined);
+
+    return () => {
+      navigator.serviceWorker.removeEventListener(
+        "controllerchange",
+        onControllerChange,
+      );
+    };
   }, []);
 
   return null;
