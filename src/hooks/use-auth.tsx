@@ -34,6 +34,8 @@ interface Profile {
   beta_features: string[];
   account_id: string | null;
   account_role: AccountRole | null;
+  /** Personal WhatsApp for AI handoff alerts when online. */
+  whatsapp_notify_phone: string | null;
 }
 
 interface AccountSummary {
@@ -204,6 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           beta_features: data.beta_features ?? [],
           account_id: data.account_id ?? null,
           account_role: accountRole,
+          whatsapp_notify_phone: data.whatsapp_notify_phone ?? null,
         });
         setAccount(accountRow);
       }
