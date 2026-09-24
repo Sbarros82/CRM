@@ -636,7 +636,11 @@ export function MessageThread({
         if (!res.ok) {
           const reason = payload?.error || `HTTP ${res.status}`;
           console.error("Failed to send template:", reason);
-          toast.error(`Failed to send template: ${reason}`);
+          toast.error(
+            String(reason).includes("Modelo não existe")
+              ? String(reason)
+              : `Falha ao enviar modelo: ${reason}`,
+          );
           onUpdateMessage(tempId, { status: "failed" });
           return;
         }
@@ -644,8 +648,12 @@ export function MessageThread({
         onUpdateMessage(tempId, { status: "sent" });
       } catch (err) {
         console.error("Failed to send template:", err);
-        const reason = err instanceof Error ? err.message : "network error";
-        toast.error(`Failed to send template: ${reason}`);
+        const reason = err instanceof Error ? err.message : "erro de rede";
+        toast.error(
+          String(reason).includes("Modelo não existe")
+            ? String(reason)
+            : `Falha ao enviar modelo: ${reason}`,
+        );
         onUpdateMessage(tempId, { status: "failed" });
       }
     },

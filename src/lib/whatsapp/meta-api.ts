@@ -29,13 +29,22 @@ interface MetaErrorResponse {
 
 async function throwMetaError(response: Response, fallback: string): Promise<never> {
   let message = fallback
+  let code: number | undefined
   try {
     const data = (await response.json()) as MetaErrorResponse
     if (data.error?.message) message = data.error.message
+    if (typeof data.error?.code === 'number') code = data.error.code
   } catch {
     // response body wasn't JSON — keep the fallback
   }
-  throw new Error(message)
+  // #132001: name/language not on THIS WABA (common when templates were
+  // approved on another WhatsApp Business Account and only synced locally).
+  if (code === 132001 || /template name does not exist in the translation/i.test(message)) {
+    throw new Error(
+      'Modelo não existe nesta conta WhatsApp (nome/idioma). Em Configurações → Modelos, use “Sincronizar da Meta” e reenvie o modelo se precisar.',
+    )
+  }
+  throw new Error(code ? `Meta API error: (#${code}) ${message}` : `Meta API error: ${message}`)
 }
 
 // ============================================================

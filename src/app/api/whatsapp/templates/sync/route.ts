@@ -13,8 +13,9 @@ import type { TemplateButton, TemplateSampleValues } from '@/types'
  * states (PAUSED) from terminal ones (DISABLED) and so webhook events
  * land 1:1 without a translation table.
  *
- * Locally-created templates (no Meta counterpart) are NOT deleted —
- * they remain visible so the user can notice drift and clean up.
+ * Locally-created templates that Meta no longer lists for this WABA
+ * are marked DISABLED (not deleted) so the inbox picker stops offering
+ * them — otherwise send fails with Meta #132001.
  */
 
 const META_API_VERSION = 'v21.0'
@@ -212,7 +213,12 @@ export async function POST() {
 
     let inserted = 0
     let updated = 0
+    let disabledOrphans = 0
     const errors: { name: string; language: string; message: string }[] = []
+
+    const metaKeys = new Set(
+      metaTemplates.map((t) => `${t.name}::${t.language}`),
+    )
 
     for (const t of metaTemplates) {
       const body = (t.components ?? []).find((c) => c.type === 'BODY')
@@ -301,11 +307,37 @@ export async function POST() {
       }
     }
 
+    // Templates that look APPROVED locally but are missing from THIS
+    // WABA cause Meta error #132001 on send ("Template name does not
+    // exist in the translation"). Mark them DISABLED so the inbox
+    // picker stops offering them until they're re-submitted here.
+    const { data: localRows } = await supabase
+      .from('message_templates')
+      .select('id, name, language, status')
+      .eq('account_id', accountId)
+      .in('status', ['APPROVED', 'PENDING', 'PAUSED'])
+
+    for (const row of localRows ?? []) {
+      const key = `${row.name}::${row.language}`
+      if (metaKeys.has(key)) continue
+      const { error: disableErr } = await supabase
+        .from('message_templates')
+        .update({
+          status: 'DISABLED',
+          submission_error:
+            'Não encontrado nesta conta WhatsApp (WABA). Sincronizado e desativado — reenvie o modelo em Configurações → Modelos.',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', row.id)
+      if (!disableErr) disabledOrphans++
+    }
+
     return NextResponse.json({
       success: errors.length === 0,
       total: metaTemplates.length,
       inserted,
       updated,
+      disabledOrphans,
       errors,
       truncated: pageCount >= PAGE_CAP && nextUrl !== null,
     })
