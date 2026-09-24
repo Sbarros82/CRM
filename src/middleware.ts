@@ -75,6 +75,18 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
+  // Public self-serve signup is closed. Accounts are created via invite
+  // (Members) or support. Keep /signup?invite=… for invited employees.
+  if (
+    request.nextUrl.pathname === '/signup' &&
+    !request.nextUrl.searchParams.get('invite')
+  ) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    url.search = ''
+    return NextResponse.redirect(url, 308)
+  }
+
   // Auth pages - redirect to dashboard if already logged in.
   // Exception: when an invite token is in the query string we
   // send the already-signed-in user to /join/<token> instead so
@@ -96,7 +108,7 @@ export async function middleware(request: NextRequest) {
       url.pathname = `/join/${encodeURIComponent(inviteToken)}`
       url.search = ''
     } else {
-      url.pathname = '/dashboard'
+      url.pathname = '/inbox'
       url.search = ''
     }
     return withRefreshedCookies(NextResponse.redirect(url))

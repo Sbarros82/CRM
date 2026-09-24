@@ -7,20 +7,10 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { MessageSquare, UsersRound } from "lucide-react";
+import { UsersRound } from "lucide-react";
+import HeroAurora from "@/components/marketing/hero-aurora";
+import LineRippleBackground from "@/components/originkit/line-ripple-background";
 
-// `useSearchParams` opts the component out of static prerendering
-// unless it sits under a Suspense boundary. We split the form into
-// a child component so the outer page can prerender the chrome
-// (background, card frame) while the form hydrates with the query
-// string on the client.
 export default function LoginPage() {
   return (
     <Suspense fallback={null}>
@@ -31,9 +21,6 @@ export default function LoginPage() {
 
 function LoginPageInner() {
   const searchParams = useSearchParams();
-  // Forwarded from `/join/<token>` when the visitor already has an
-  // account. After a successful sign-in we send them to the join
-  // page to accept rather than to /dashboard.
   const inviteToken = searchParams.get("invite");
 
   const [email, setEmail] = useState("");
@@ -48,13 +35,13 @@ function LoginPageInner() {
     setError(null);
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error: signError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (error) {
-      setError(error.message);
+    if (signError) {
+      setError(signError.message);
       setLoading(false);
       return;
     }
@@ -62,102 +49,125 @@ function LoginPageInner() {
     if (inviteToken) {
       router.push(`/join/${encodeURIComponent(inviteToken)}`);
     } else {
-      router.push("/dashboard");
+      router.push("/inbox");
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-md border-slate-100 bg-white shadow-2xl rounded-2xl">
-        <CardHeader className="items-center text-center">
-          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl">
-            {inviteToken ? (
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10">
-                <UsersRound className="h-6 w-6 text-blue-600" />
-              </div>
-            ) : (
-              <img src="/logo.png" alt="Snap Logo" className="h-12 w-12 object-contain rounded-xl" />
-            )}
-          </div>
-          <CardTitle className="text-xl text-slate-900 font-bold">
-            {inviteToken ? "Entrar para aceitar" : "Bem-vindo de volta"}
-          </CardTitle>
-          <CardDescription className="text-slate-500">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
+      <HeroAurora />
+      <div className="pointer-events-none absolute inset-0 opacity-70">
+        <LineRippleBackground
+          strokeColor="rgba(255, 221, 0, 0.22)"
+          backgroundColor="transparent"
+          count={36}
+          movement={14}
+          force={2.5}
+        />
+      </div>
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_40%,transparent_0%,#0C0C0A_72%)]" />
+
+      <div className="relative z-10 w-full max-w-[420px]">
+        <div className="mb-8 flex flex-col items-center text-center">
+          {inviteToken ? (
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#FFDD00]/25 bg-[#FFDD00]/10">
+              <UsersRound className="h-7 w-7 text-[#FFDD00]" />
+            </div>
+          ) : (
+            <img
+              src="/logo.png"
+              alt="Snap"
+              className="mb-4 h-14 w-14 rounded-2xl object-contain shadow-[0_0_40px_rgba(255,221,0,0.18)]"
+            />
+          )}
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#FFDD00]">
+            Snap
+          </p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+            {inviteToken ? "Entrar para aceitar o convite" : "Bem-vindo de volta"}
+          </h1>
+          <p className="mt-2 max-w-sm text-sm leading-relaxed text-zinc-400">
             {inviteToken
-              ? "Faça login para podermos direcioná-lo ao convite."
-              : "Entre na sua conta do Snap"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin} className="flex flex-col gap-4">
+              ? "Use o e-mail convidado pela sua empresa para continuar."
+              : "Acesso interno da equipe. Contas são criadas pelo administrador ou pelo suporte."}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-[#141412]/85 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:p-8">
+          <form onSubmit={handleLogin} className="flex flex-col gap-5">
             {error && (
-              <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+              <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
                 {error}
               </div>
             )}
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email" className="text-slate-700 font-medium">
+              <Label htmlFor="email" className="text-zinc-300">
                 E-mail
               </Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="seu-email@exemplo.com"
+                autoComplete="email"
+                placeholder="voce@suaempresa.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-blue-600/20"
+                className="h-11 border-white/10 bg-black/40 text-white placeholder:text-zinc-500 focus-visible:border-[#FFDD00]/50 focus-visible:ring-[#FFDD00]/20"
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-slate-700 font-medium">
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="password" className="text-zinc-300">
                   Senha
                 </Label>
                 <Link
                   href="/forgot-password"
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  className="text-xs font-medium text-[#FFDD00] hover:text-[#FFE44D]"
                 >
-                  Esqueceu sua senha?
+                  Esqueceu a senha?
                 </Link>
               </div>
               <Input
                 id="password"
                 type="password"
+                autoComplete="current-password"
                 placeholder="Digite sua senha"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="border-slate-200 bg-slate-50 text-slate-900 placeholder:text-slate-400 focus-visible:border-blue-600 focus-visible:ring-blue-600/20"
+                className="h-11 border-white/10 bg-black/40 text-white placeholder:text-zinc-500 focus-visible:border-[#FFDD00]/50 focus-visible:ring-[#FFDD00]/20"
               />
             </div>
 
             <Button
               type="submit"
               disabled={loading}
-              className="mt-2 h-10 w-full bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 font-semibold shadow-md shadow-blue-600/10 transition-colors"
+              className="mt-1 h-11 w-full bg-[#FFDD00] font-semibold text-[#0C0C0A] hover:bg-[#FFE44D] disabled:opacity-50"
             >
               {loading ? "Entrando..." : "Entrar"}
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-slate-500">
-            Não tem uma conta?{" "}
-            <Link
-              href={
-                inviteToken
-                  ? `/signup?invite=${encodeURIComponent(inviteToken)}`
-                  : "/signup"
-              }
-              className="text-blue-600 hover:text-blue-700 font-medium"
-            >
-              Criar conta
-            </Link>
-          </p>
-        </CardContent>
-      </Card>
+          {inviteToken ? (
+            <p className="mt-6 text-center text-sm text-zinc-400">
+              Ainda não tem acesso?{" "}
+              <Link
+                href={`/signup?invite=${encodeURIComponent(inviteToken)}`}
+                className="font-medium text-[#FFDD00] hover:text-[#FFE44D]"
+              >
+                Criar conta com o convite
+              </Link>
+            </p>
+          ) : (
+            <p className="mt-6 text-center text-xs leading-relaxed text-zinc-500">
+              Precisa de acesso? Peça ao administrador da empresa ou ao
+              suporte Snap para enviar um convite.
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
