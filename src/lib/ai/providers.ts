@@ -36,7 +36,7 @@ async function completeOpenAiCompatible(args: CompleteArgs): Promise<string> {
             process.env.NEXT_PUBLIC_APP_URL ||
             (process.env.VERCEL_PROJECT_PRODUCTION_URL
               ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-              : "https://crm-phi-red-71.vercel.app"),
+              : "https://app.snap.ia.br"),
           "X-Title": "Snap CRM",
         }
       : {}),

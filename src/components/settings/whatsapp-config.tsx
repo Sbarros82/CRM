@@ -500,8 +500,26 @@ export function WhatsAppConfig() {
                   <span className="text-red-300">
                     &quot;{lastRegistrationError}&quot;
                   </span>
-                  . Enter (or correct) the 2-step PIN below and click
-                  Save Configuration to retry.
+                  .
+                  {/SMB|not available for/i.test(lastRegistrationError) ? (
+                    <>
+                      {' '}
+                      This number is still on WhatsApp Business App
+                      (Meta reports ON_PREMISE / DISCONNECTED), not
+                      Cloud API — re-entering the PIN will not fix it.
+                      In Meta Developer Console → WhatsApp → API
+                      setup, migrate or add the number as{' '}
+                      <strong>Cloud API</strong> until status is
+                      connected, then Assinar <strong>messages</strong>{' '}
+                      on the webhook and Save again.
+                    </>
+                  ) : (
+                    <>
+                      {' '}
+                      Enter (or correct) the 2-step PIN below and
+                      click Save Configuration to retry.
+                    </>
+                  )}
                 </>
               ) : (
                 <>
