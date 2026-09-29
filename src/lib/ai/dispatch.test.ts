@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { isHandoffRequest, isModelHandoffReply } from "./dispatch";
+import {
+  isHandoffRequest,
+  isModelHandoffReply,
+  pickAiFallbackText,
+} from "./dispatch";
 
 describe("isHandoffRequest", () => {
   it("detects human-handoff phrasing", () => {
@@ -39,5 +43,27 @@ describe("isModelHandoffReply", () => {
         "Posso encaminhar para um consultor depois. Qual é a sua cidade?",
       ),
     ).toBe(false);
+  });
+});
+
+describe("pickAiFallbackText", () => {
+  it("asks ramo on first touch", () => {
+    expect(
+      pickAiFallbackText([{ role: "user", content: "Oi" }]),
+    ).toMatch(/ramo da empresa/);
+  });
+
+  it("does not repeat the ramo question after it was already asked", () => {
+    const text = pickAiFallbackText([
+      { role: "user", content: "Oi" },
+      {
+        role: "assistant",
+        content:
+          "Recebi sua mensagem. Qual o ramo da empresa e quantas pessoas atendem o WhatsApp?",
+      },
+      { role: "user", content: "Construção. 10" },
+    ]);
+    expect(text).not.toMatch(/ramo da empresa/);
+    expect(text).toMatch(/CRM no WhatsApp|Snap/i);
   });
 });
