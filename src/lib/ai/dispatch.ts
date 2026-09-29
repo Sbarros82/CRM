@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/flows/admin-client";
 import { engineSendText } from "@/lib/automations/meta-send";
+import { startAiFallbackFlow } from "@/lib/flows/engine";
 import { writeAudit } from "@/lib/audit";
 import { isOptedOut } from "@/lib/whatsapp/opt-out";
 import { isSessionOpen } from "@/lib/whatsapp/session-window";
@@ -64,6 +65,8 @@ export async function maybeDispatchAiReply(args: {
   conversationId: string;
   contactId: string;
   inboundText: string;
+  /** Meta inbound message id — forwarded to FAQ fallback run logs. */
+  metaMessageId?: string;
 }): Promise<void> {
   const settings = await loadAiSettings(args.accountId);
   if (!settings?.enabled || !settings.hasApiKey) {
@@ -146,6 +149,7 @@ export async function maybeDispatchAiReply(args: {
     accountId: args.accountId,
     conversationId: args.conversationId,
     contactId: args.contactId,
+    metaMessageId: args.metaMessageId,
   });
   if (!reply) return;
 
@@ -214,6 +218,7 @@ async function generateCustomerReply(args: {
   accountId: string;
   conversationId: string;
   contactId: string;
+  metaMessageId?: string;
 }): Promise<string | null> {
   const run = (messages: ChatTurn[], system: string) =>
     completeChat({
@@ -289,7 +294,29 @@ async function sendAiFallback(args: {
   conversationId: string;
   contactId: string;
   history: ChatTurn[];
+  metaMessageId?: string;
 }): Promise<void> {
+  // Prefer the configured FAQ/menu flow over a hardcoded triage line.
+  try {
+    const flowResult = await startAiFallbackFlow({
+      accountId: args.accountId,
+      userId: args.accountId,
+      contactId: args.contactId,
+      conversationId: args.conversationId,
+      metaMessageId: args.metaMessageId,
+    });
+    if (flowResult.consumed) {
+      console.warn("[ai] fallback started FAQ flow", {
+        conversationId: args.conversationId,
+        flow_run_id: flowResult.flow_run_id,
+        outcome: flowResult.outcome,
+      });
+      return;
+    }
+  } catch (err) {
+    console.error("[ai] FAQ fallback flow failed:", err);
+  }
+
   const text = pickAiFallbackText(args.history);
   console.warn("[ai] using fallback reply", {
     conversationId: args.conversationId,

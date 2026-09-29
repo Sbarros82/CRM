@@ -109,6 +109,57 @@ export function matchesKeywordTrigger(
   return false;
 }
 
+/**
+ * Keywords that identify the FAQ / menu flow (template FAQ Snap).
+ * When the AI fails, we auto-start an active keyword flow that
+ * includes any of these.
+ */
+export const AI_FALLBACK_FAQ_KEYWORDS = [
+  "menu",
+  "faq",
+  "dúvida",
+  "duvida",
+  "assuntos",
+] as const;
+
+function normalizeFaqKeyword(raw: string): string {
+  return raw
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .trim();
+}
+
+/**
+ * True when a keyword-trigger flow is the FAQ/menu bot (shares at
+ * least one keyword with the Snap FAQ template).
+ */
+export function isFaqMenuKeywordFlow(
+  flow: Pick<FlowRow, "trigger_type" | "trigger_config">,
+): boolean {
+  if (flow.trigger_type !== "keyword") return false;
+  const cfg = flow.trigger_config as KeywordTriggerConfig;
+  const keywords = (cfg.keywords ?? [])
+    .filter((k): k is string => typeof k === "string" && k.trim().length > 0)
+    .map(normalizeFaqKeyword);
+  if (keywords.length === 0) return false;
+  return AI_FALLBACK_FAQ_KEYWORDS.some((faq) => {
+    const needle = normalizeFaqKeyword(faq);
+    return keywords.some((k) => k === needle || k.includes(needle));
+  });
+}
+
+/**
+ * First matching FAQ/menu flow from a list already ordered by
+ * created_at ascending (oldest first = preferred).
+ */
+export function pickFaqMenuFlow(flows: FlowRow[]): FlowRow | null {
+  for (const flow of flows) {
+    if (isFaqMenuKeywordFlow(flow) && flow.entry_node_id) return flow;
+  }
+  return null;
+}
+
 /** Nodes that advance to a next_node_key without waiting for input. */
 export function isAutoAdvancing(node_type: string): boolean {
   return (
@@ -1119,4 +1170,68 @@ async function startNewRun(
     flow_run_id: run.id,
     outcome: outcome.outcome === "advanced" ? "started" : outcome.outcome,
   };
+}
+
+/**
+ * When the AI cannot produce a customer reply, start the account's
+ * FAQ/menu flow (if any) so the contact still gets a useful path.
+ * Returns consumed:true when a run was started; otherwise no_match
+ * so the AI layer can fall back to a short text message.
+ */
+export async function startAiFallbackFlow(args: {
+  accountId: string;
+  userId: string;
+  contactId: string;
+  conversationId: string;
+  /** Optional Meta message id for run-event logging. */
+  metaMessageId?: string;
+}): Promise<DispatchInboundResult> {
+  const db = supabaseAdmin();
+  try {
+    const activeRun = await loadActiveRunForContact(
+      db,
+      args.accountId,
+      args.contactId,
+    );
+    if (activeRun) {
+      return { consumed: false, outcome: "no_match" };
+    }
+
+    const { data: flows, error } = await db
+      .from("flows")
+      .select("*")
+      .eq("account_id", args.accountId)
+      .eq("status", "active")
+      .order("created_at", { ascending: true });
+    if (error || !flows?.length) {
+      return { consumed: false, outcome: "no_match" };
+    }
+
+    const flow = pickFaqMenuFlow(flows as FlowRow[]);
+    if (!flow?.entry_node_id) {
+      return { consumed: false, outcome: "no_match" };
+    }
+
+    const nodes = await loadAllNodes(db, flow.id);
+    const input: DispatchInboundInput = {
+      accountId: args.accountId,
+      userId: args.userId,
+      contactId: args.contactId,
+      conversationId: args.conversationId,
+      message: {
+        kind: "text",
+        text: "menu",
+        meta_message_id:
+          args.metaMessageId ??
+          `ai-fallback-${args.conversationId}-${Date.now()}`,
+      },
+    };
+    return startNewRun(db, flow, input, nodes);
+  } catch (err) {
+    console.error(
+      "[flows] startAiFallbackFlow threw:",
+      err instanceof Error ? err.message : err,
+    );
+    return { consumed: false, outcome: "no_match" };
+  }
 }

@@ -748,6 +748,7 @@ async function processMessage(
         conversationId: conversation.id,
         contactId: contactRecord.id,
         inboundText,
+        metaMessageId: message.id,
       })
     } catch (err) {
       console.error('[ai] dispatch failed:', err)

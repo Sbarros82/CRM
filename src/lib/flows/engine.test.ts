@@ -6,7 +6,37 @@ import {
   isSuspending,
   isTerminal,
   evaluateConditionPredicate,
+  isFaqMenuKeywordFlow,
+  pickFaqMenuFlow,
 } from "./engine";
+import type { FlowRow } from "./types";
+
+function fakeFlow(
+  partial: Partial<FlowRow> &
+    Pick<FlowRow, "trigger_type" | "trigger_config" | "entry_node_id">,
+): FlowRow {
+  return {
+    id: partial.id ?? "flow-1",
+    account_id: "acc",
+    user_id: "user",
+    name: partial.name ?? "Test",
+    description: null,
+    status: "active",
+    trigger_type: partial.trigger_type,
+    trigger_config: partial.trigger_config,
+    entry_node_id: partial.entry_node_id,
+    fallback_policy: {
+      on_unknown_reply: "reprompt",
+      max_reprompts: 2,
+      on_timeout_hours: 24,
+      on_exhaust: "handoff",
+    },
+    execution_count: 0,
+    last_executed_at: null,
+    created_at: partial.created_at ?? "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+  };
+}
 
 describe("matchReplyId", () => {
   it("returns null for nodes without options", () => {
@@ -295,5 +325,69 @@ describe("evaluateConditionPredicate", () => {
         configValue: "anything",
       }),
     ).toBe(false);
+  });
+});
+
+describe("isFaqMenuKeywordFlow / pickFaqMenuFlow", () => {
+  it("recognizes the Snap FAQ keyword set", () => {
+    expect(
+      isFaqMenuKeywordFlow({
+        trigger_type: "keyword",
+        trigger_config: {
+          keywords: ["menu", "faq", "dúvida", "duvida", "assuntos"],
+        },
+      }),
+    ).toBe(true);
+  });
+
+  it("matches when only one FAQ keyword is present", () => {
+    expect(
+      isFaqMenuKeywordFlow({
+        trigger_type: "keyword",
+        trigger_config: { keywords: ["FAQ"] },
+      }),
+    ).toBe(true);
+  });
+
+  it("rejects unrelated keyword flows and non-keyword triggers", () => {
+    expect(
+      isFaqMenuKeywordFlow({
+        trigger_type: "keyword",
+        trigger_config: { keywords: ["suporte", "atendimento"] },
+      }),
+    ).toBe(false);
+    expect(
+      isFaqMenuKeywordFlow({
+        trigger_type: "first_inbound_message",
+        trigger_config: {},
+      }),
+    ).toBe(false);
+  });
+
+  it("picks the first FAQ flow with an entry node", () => {
+    const support = fakeFlow({
+      id: "support",
+      trigger_type: "keyword",
+      trigger_config: { keywords: ["suporte"] },
+      entry_node_id: "start",
+      created_at: "2026-01-01T00:00:00Z",
+    });
+    const faq = fakeFlow({
+      id: "faq",
+      name: "FAQ Snap",
+      trigger_type: "keyword",
+      trigger_config: { keywords: ["menu", "faq"] },
+      entry_node_id: "start",
+      created_at: "2026-02-01T00:00:00Z",
+    });
+    const faqNoEntry = fakeFlow({
+      id: "faq-broken",
+      trigger_type: "keyword",
+      trigger_config: { keywords: ["menu"] },
+      entry_node_id: null,
+      created_at: "2026-01-15T00:00:00Z",
+    });
+    expect(pickFaqMenuFlow([support, faqNoEntry, faq])?.id).toBe("faq");
+    expect(pickFaqMenuFlow([support])).toBeNull();
   });
 });
