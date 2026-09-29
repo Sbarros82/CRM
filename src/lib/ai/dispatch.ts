@@ -259,18 +259,54 @@ async function generateCustomerReply(args: {
   return raw;
 }
 
+/** First-touch when the model is down / dumps scratchpad. */
+const FALLBACK_OPEN =
+  "Recebi sua mensagem. Qual o ramo da empresa e quantas pessoas atendem o WhatsApp?";
+
+/** After we already asked that — never repeat the same line. */
+const FALLBACK_ACK =
+  "Obrigado! Anotei. Você busca CRM no WhatsApp (Snap), site/landing, automação, ou os três?";
+
+const FALLBACK_GENERIC =
+  "Recebi sim. Em uma frase, o que você precisa agora?";
+
+export function pickAiFallbackText(history: ChatTurn[]): string {
+  const askedRamo = history.some(
+    (t) =>
+      t.role === "assistant" &&
+      /ramo da empresa|quantas pessoas atendem/i.test(t.content),
+  );
+  if (askedRamo) return FALLBACK_ACK;
+
+  const hadAssistant = history.some((t) => t.role === "assistant");
+  if (hadAssistant) return FALLBACK_GENERIC;
+
+  return FALLBACK_OPEN;
+}
+
 async function sendAiFallback(args: {
   accountId: string;
   conversationId: string;
   contactId: string;
+  history: ChatTurn[];
 }): Promise<void> {
+  const text = pickAiFallbackText(args.history);
+  console.warn("[ai] using fallback reply", {
+    conversationId: args.conversationId,
+    kind:
+      text === FALLBACK_OPEN
+        ? "open"
+        : text === FALLBACK_ACK
+          ? "ack"
+          : "generic",
+  });
   try {
     await engineSendText({
       accountId: args.accountId,
       userId: args.accountId,
       conversationId: args.conversationId,
       contactId: args.contactId,
-      text: "Recebi sua mensagem. Qual o ramo da empresa e quantas pessoas atendem o WhatsApp?",
+      text,
     });
   } catch (err) {
     console.error("[ai] fallback send failed:", err);
